@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Federazione Basket Sammarinese · Sezione Giovani</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --navy:#0d1f3c; --navy-l:#1a3560; --orange:#f47c20; --orange-l:#f9a55f;
+  --white:#fff; --off:#f8f9fc; --gray:#6b7280; --lgray:#e5e7eb;
+  --success:#16a34a; --err:#dc2626;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;color:var(--navy);background:var(--off);min-height:100vh}
+a{text-decoration:none;color:inherit}
+
+/* NAV */
+nav{background:var(--navy);padding:0 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);gap:16px}
+.nav-logo{display:flex;align-items:center;gap:10px;cursor:pointer;padding:13px 0;flex-shrink:0}
+.nav-logo-ball{width:36px;height:36px;background:var(--orange);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+.nav-logo-text{font-family:'Oswald',sans-serif;color:#fff;font-size:15px;font-weight:700;line-height:1.2}
+.nav-logo-sub{color:var(--orange);font-size:10px;font-weight:400;letter-spacing:1px}
+.nav-links{display:flex;gap:2px;flex-wrap:wrap;align-items:center}
+.nav-link{color:rgba(255,255,255,.72);font-size:13px;font-weight:600;padding:7px 10px;border-radius:6px;cursor:pointer;transition:color .15s,background .15s}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,.08)}
+.nav-link.active{color:var(--orange)}
+.nav-admin{color:rgba(255,255,255,.4);font-size:11px;padding:5px 8px;border-radius:6px;cursor:pointer;transition:all .15s;border:1px solid rgba(255,255,255,.12);margin-left:8px}
+.nav-admin:hover{color:var(--orange);border-color:rgba(244,124,32,.4)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-l) 55%,#2a4a7f 100%);padding:60px 24px 52px;text-align:center;overflow:hidden;position:relative}
+.hero-bg1,.hero-bg2{position:absolute;border-radius:50%;background:rgba(244,124,32,.07);pointer-events:none}
+.hero-bg1{width:320px;height:320px;top:-80px;right:-60px}
+.hero-bg2{width:220px;height:220px;bottom:-50px;left:20px}
+.hero-inner{position:relative;z-index:1}
+.hero-kicker{font-family:'Oswald',sans-serif;color:var(--orange);font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.hero-title{font-family:'Oswald',sans-serif;color:#fff;font-size:54px;font-weight:700;line-height:1.05;margin-bottom:16px}
+.hero-desc{color:rgba(255,255,255,.7);font-size:16px;max-width:500px;margin:0 auto 36px;line-height:1.7}
+.photos-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:680px;margin:0 auto}
+.photo-slot{background:var(--navy-l);border-radius:12px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px solid rgba(244,124,32,.25);overflow:hidden}
+.photo-slot img{width:100%;height:100%;object-fit:cover}
+.photo-ph{color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px;line-height:1.6}
+
+/* SECTION */
+.section{max-width:980px;margin:0 auto;padding:52px 24px}
+.section-title{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.section-line{width:48px;height:4px;background:var(--orange);border-radius:2px;margin-bottom:32px}
+
+/* CAT GRID */
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+.cat-card{background:#fff;border-radius:14px;padding:28px 24px;border:1.5px solid var(--lgray);cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:10px}
+.cat-card:hover{border-color:var(--orange);transform:translateY(-3px);box-shadow:0 8px 24px rgba(244,124,32,.14)}
+.cat-icon{font-size:28px}
+.cat-name{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600}
+.cat-desc{font-size:14px;color:var(--gray);line-height:1.5}
+.cat-arrow{color:var(--orange);font-size:18px;font-weight:700;margin-top:auto}
+
+/* BREADCRUMB */
+.breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:28px;font-size:14px;color:var(--gray)}
+.bc-link{color:var(--orange);cursor:pointer;font-weight:600}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+.page-title{font-family:'Oswald',sans-serif;font-size:36px;font-weight:700;margin-bottom:4px}
+.page-sub{color:var(--gray);font-size:15px;margin-bottom:32px}
+
+/* CARD */
+.card{background:#fff;border-radius:14px;padding:28px;border:1.5px solid var(--lgray)}
+.card-title{font-family:'Oswald',sans-serif;font-size:19px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+
+/* FLYER */
+.flyer-box{background:linear-gradient(145deg,var(--navy),var(--navy-l));border-radius:10px;aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;color:#fff;text-align:center;gap:10px;overflow:hidden;position:relative}
+.flyer-box img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:10px}
+.flyer-ph{display:flex;flex-direction:column;align-items:center;gap:10px;z-index:1}
+.flyer-ph-title{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700}
+.flyer-ph-note{font-size:12px;color:rgba(255,255,255,.4);margin-top:8px}
+
+/* BUTTONS */
+.btn{background:var(--orange);color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:#e06b10;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn-navy{background:var(--navy-l)}
+.btn-navy:hover{background:var(--navy)}
+.btn-outline{background:transparent;color:var(--navy);border:2px solid var(--lgray);border-radius:8px;padding:9px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s}
+.btn-outline:hover{border-color:var(--navy)}
+.btn-danger{background:#fef2f2;color:var(--err);border:1.5px solid #fca5a5;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s}
+.btn-danger:hover{background:#fee2e2}
+.btn-full{width:100%;justify-content:center}
+.btn-sm{padding:6px 14px;font-size:12px}
+
+/* FORM */
+.form-row{margin-bottom:16px}
+.form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+label.lbl{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;display:block}
+.req{color:var(--orange)}
+input[type=text],input[type=email],input[type=tel],input[type=password],textarea,select{
+  width:100%;padding:10px 14px;border:1.5px solid var(--lgray);border-radius:8px;font-size:14px;
+  font-family:'Nunito',sans-serif;color:var(--navy);background:#fff;outline:none;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--orange)}
+textarea{resize:vertical;min-height:80px;line-height:1.5}
+.file-drop{border:2px dashed var(--lgray);border-radius:8px;padding:20px 16px;text-align:center;cursor:pointer;background:var(--off);transition:all .15s}
+.file-drop:hover,.file-drop.drag{border-color:var(--orange);background:#fff8f2}
+.file-drop-icon{font-size:22px;margin-bottom:6px}
+.file-drop-text{font-size:14px;color:var(--gray)}
+.file-drop-hint{font-size:12px;color:var(--gray);margin-top:4px}
+.file-name{color:var(--success);font-weight:700;font-size:14px;margin-bottom:4px}
+.file-meta{font-size:12px;color:var(--gray)}
+
+/* ALERTS */
+.alert{border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:14px;line-height:1.5}
+.alert-err{background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b}
+.alert-ok{background:#f0fdf4;border:1.5px solid #86efac;color:#166534}
+.success-box{background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:32px 28px;text-align:center}
+.success-icon{font-size:44px;margin-bottom:12px}
+.success-title{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;color:var(--success);margin-bottom:8px}
+.success-text{color:#166534;font-size:15px;margin-bottom:20px;line-height:1.6}
+
+/* ADMIN */
+.admin-wrap{max-width:400px;margin:80px auto;padding:0 24px}
+.admin-card{background:#fff;border-radius:16px;padding:40px 36px;border:1.5px solid var(--lgray);box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.admin-icon{font-size:36px;margin-bottom:10px;display:block;text-align:center}
+.admin-title{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;text-align:center;margin-bottom:6px}
+.admin-sub{font-size:14px;color:var(--gray);text-align:center;margin-bottom:28px}
+.dash-wrap{max-width:1100px;margin:0 auto;padding:44px 24px}
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;gap:16px;flex-wrap:wrap}
+.dash-title{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700}
+.dash-actions{display:flex;gap:10px;flex-wrap:wrap}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+.stat-card{background:#fff;border-radius:12px;padding:20px 24px;border:1.5px solid var(--lgray)}
+.stat-label{font-size:13px;color:var(--gray);margin-bottom:8px}
+.stat-val{font-family:'Oswald',sans-serif;font-size:36px;font-weight:700}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--lgray);margin-bottom:28px}
+.tab{padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;border-radius:8px 8px 0 0;color:var(--gray);transition:all .15s;border:none;background:transparent;font-family:'Nunito',sans-serif}
+.tab.active{color:var(--navy);background:#fff;border:2px solid var(--lgray);border-bottom:2px solid #fff;margin-bottom:-2px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:10px 14px;background:var(--navy);color:#fff;font-size:13px;font-weight:600}
+th:first-child{border-radius:8px 0 0 0}
+th:last-child{border-radius:0 8px 0 0}
+td{padding:11px 14px;border-bottom:1px solid var(--lgray);vertical-align:middle}
+tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:var(--orange);color:#fff}
+.badge-gray{background:var(--lgray);color:var(--gray)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.detail-item{background:var(--off);border-radius:8px;padding:12px 16px}
+.detail-key{font-size:12px;color:var(--gray);margin-bottom:4px}
+.detail-val{font-size:15px;font-weight:600}
+.detail-note{background:var(--off);border-radius:8px;padding:12px 16px;margin-bottom:20px}
+.detail-actions{display:flex;gap:10px;flex-wrap:wrap}
+.empty-state{text-align:center;padding:60px 0;color:var(--gray)}
+.empty-icon{font-size:48px;margin-bottom:14px}
+.empty-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--navy)}
+.empty-text{font-size:14px}
+
+/* CONTENT UPLOAD (admin) */
+.asset-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--lgray);gap:12px;flex-wrap:wrap}
+.asset-row:last-child{border-bottom:none}
+.asset-cat{font-weight:700;font-size:14px}
+.asset-slots{display:flex;gap:10px;flex-wrap:wrap}
+.asset-slot{display:flex;align-items:center;gap:8px;background:var(--off);border-radius:8px;padding:8px 14px;font-size:13px}
+.asset-slot-ok{background:#f0fdf4;border:1px solid #86efac}
+.asset-slot-miss{border:1.5px dashed var(--lgray)}
+
+/* LOADING */
+.loader{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.loader-dark{border-color:rgba(0,0,0,.15);border-top-color:var(--navy)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.page-loader{text-align:center;padding:80px 24px;color:var(--gray);font-size:15px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast-msg{background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;transform:translateY(12px);transition:all .3s;pointer-events:none;max-width:300px}
+.toast-msg.show{opacity:1;transform:translateY(0)}
+.toast-msg.ok{background:#166534}
+.toast-msg.err{background:#991b1b}
+
+/* FOOTER */
+footer{background:var(--navy);color:rgba(255,255,255,.45);text-align:center;padding:24px;font-size:13px;margin-top:40px}
+footer span{color:rgba(255,255,255,.25);font-size:12px;display:block;margin-top:5px}
+
+/* RESPONSIVE */
+@media(max-width:720px){
+  .hero-title{font-size:38px}
+  .two-col{grid-template-columns:1fr}
+  .form-grid2{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .detail-grid{grid-template-columns:1fr}
+  .nav-links{display:none}
+}
+@media(max-width:480px){
+  .stats-row{grid-template-columns:1fr}
+  .photos-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="nav-logo" onclick="navigate('home')">
+    <div class="nav-logo-ball">🏀</div>
+    <div class="nav-logo-text">
+      Federazione Basket<br>
+      <span class="nav-logo-sub">Sezione Giovani · San Marino</span>
+    </div>
+  </div>
+  <div class="nav-links" id="nav-links"></div>
+</nav>
+
+<!-- APP -->
+<div id="app"></div>
+
+<!-- FOOTER -->
+<footer>
+  © 2025 Federazione Basket Sammarinese · Sezione Giovani
+  <span>San Marino · Tutti i diritti riservati</span>
+</footer>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ⚙️  CONFIG — modifica questi valori
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://TUO-PROGETTO.supabase.co';
+const SUPABASE_KEY  = 'TUA-ANON-KEY';
+
+const CATEGORIES = [
+  { id:'centro-estivo', name:'Centro Estivo',  icon:'☀️', desc:'Attività estive per i più piccoli' },
+  { id:'categoria-2',   name:'Categoria 2',    icon:'🏀', desc:'Descrizione da aggiornare' },
+  { id:'categoria-3',   name:'Categoria 3',    icon:'⭐', desc:'Descrizione da aggiornare' },
+  { id:'categoria-4',   name:'Categoria 4',    icon:'🌟', desc:'Descrizione da aggiornare' },
+  { id:'categoria-5',   name:'Categoria 5',    icon:'🏆', desc:'Descrizione da aggiornare' },
+  { id:'categoria-6',   name:'Categoria 6',    icon:'📋', desc:'Descrizione da aggiornare' },
+];
+// ═══════════════════════════════════════════════════════
+
+const { createClient } = window.supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── STATE ──
+const state = {
+  page: 'home',
+  catId: null,
+  user: null,
+  submissions: [],
+  selected: null,
+  assets: {},       // {catId: {flyer_path, flyer_url, template_path, template_name}}
+  adminTab: 'iscrizioni',
+  formSuccess: false,
+  loading: false,
+};
+
+function set(upd) { Object.assign(state, upd); render(); }
+
+// ── HELPERS ──
+function catById(id) { return CATEGORIES.find(c => c.id === id); }
+function fmt(iso) { return new Date(iso).toLocaleString('it-IT'); }
+function fmtDate(iso) { return new Date(iso).toLocaleDateString('it-IT'); }
+function fmtSize(b) { return b > 1048576 ? (b/1048576).toFixed(1)+' MB' : Math.round(b/1024)+' KB'; }
+
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = 'toast-msg ' + type;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  requestAnimationFrame(() => { requestAnimationFrame(() => el.classList.add('show')); });
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 350); }, 3200);
+}
+
+// ── NAVIGATION ──
+function navigate(page, catId = null) {
+  set({ page, catId, formSuccess: false, selected: null });
+  window.scrollTo(0, 0);
+}
+
+// ── NAV LINKS ──
+function renderNav() {
+  const wrap = document.getElementById('nav-links');
+  wrap.innerHTML = CATEGORIES.map(c =>
+    `<span class="nav-link${state.catId===c.id?' active':''}" onclick="navigate('category','${c.id}')">${c.name}</span>`
+  ).join('') +
+  `<span class="nav-admin" onclick="navigate('admin')" title="Area amministratore">🔒</span>`;
+}
+
+// ══════════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════════
+function renderHome() {
+  return `
+  <div class="hero">
+    <div class="hero-bg1"></div><div class="hero-bg2"></div>
+    <div class="hero-inner">
+      <div class="hero-kicker">Federazione Basket · San Marino</div>
+      <h1 class="hero-title">Basket<br>per i Più Piccoli</h1>
+      <p class="hero-desc">Esplora tutte le attività dedicate ai giovani atleti. Clicca su una categoria per trovare il volantino e il modulo di iscrizione.</p>
+      <div class="photos-row">
+        <div class="photo-slot">
+          ${state.assets['__hero1']?.flyer_url
+            ? `<img src="${state.assets['__hero1'].flyer_url}" alt="foto 1">`
+            : `<div class="photo-ph">📸<br>Foto 1<br><small>Carica dall'admin</small></div>`}
+        </div>
+        <div class="photo-slot">
+          ${state.assets['__hero2']?.flyer_url
+            ? `<img src="${state.assets['__hero2'].flyer_url}" alt="foto 2">`
+            : `<div class="photo-ph">📸<br>Foto 2<br><small>Carica dall'admin</small></div>`}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <h2 class="section-title">Le nostre attività</h2>
+    <div class="section-line"></div>
+    <div class="cat-grid">
+      ${CATEGORIES.map(c => `
+        <div class="cat-card" onclick="navigate('category','${c.id}')">
+          <div class="cat-icon">${c.icon}</div>
+          <div class="cat-name">${c.name}</div>
+          <div class="cat-desc">${c.desc}</div>
+          <div class="cat-arrow">→ Scopri di più</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// CATEGORY
+// ══════════════════════════════════════════════
+function renderCategory() {
+  const cat = catById(state.catId);
+  if (!cat) return '<div class="section"><p>Categoria non trovata.</p></div>';
+  const asset = state.assets[cat.id] || {};
+
+  if (state.formSuccess) return `
+    <div class="section">
+      <div class="breadcrumb">
+        <span class="bc-link" onclick="navigate('home')">Home</span> › ${cat.name}
+      </div>
+      <div class="success-box">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Iscrizione inviata!</div>
+        <p class="success-text">Grazie! Abbiamo ricevuto la tua iscrizione per <strong>${cat.name}</strong>.<br>Ti contatteremo al più presto.</p>
+        <button class="btn" onclick="set({formSuccess:false})">Invia un'altra iscrizione</button>
+      </div>
+    </div>`;
+
+  return `
+  <div class="section">
+    <div class="breadcrumb">
+      <span class="bc-link" onclick="navigate('home')">Home</span> › ${cat.name}
+    </div>
+    <h1 class="page-title">${cat.icon} ${cat.name}</h1>
+    <p class="page-sub">${cat.desc}</p>
+
+    <div class="two-col">
+      <!-- FLYER -->
+      <div>
+        <div class="card">
+          <div class="card-title">📄 Volantino</div>
+          <div class="flyer-box">
+            ${asset.flyer_url
+              ? `<img src="${asset.flyer_url}" alt="Volantino ${cat.name}">`
+              : `<div class="flyer-ph">
+                  <div style="font-size:40px">🏀</div>
+                  <div class="flyer-ph-title">${cat.name}</div>
+                  <div style="color:var(--orange);font-size:12px;letter-spacing:1px;text-transform:uppercase">Federazione Basket · San Marino</div>
+                  <div style="color:rgba(255,255,255,.45);font-size:13px;line-height:1.6;margin-top:8px">Il volantino sarà disponibile a breve</div>
+                  <div class="flyer-ph-note">[ Carica il volantino dal pannello admin ]</div>
+                </div>`}
+          </div>
+          <div style="margin-top:14px">
+            ${asset.flyer_url
+              ? `<a href="${asset.flyer_url}" download class="btn btn-navy">⬇ Scarica volantino</a>`
+              : `<button class="btn btn-navy" disabled style="opacity:.45">⬇ Volantino non ancora disponibile</button>`}
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM -->
+      <div>
+        <div class="card">
+          <div class="card-title">📝 Modulo di iscrizione</div>
+          <p style="font-size:14px;color:var(--gray);margin-bottom:18px;line-height:1.6">
+            Scarica il modulo, compilalo e ricaricalo qui sotto. In alternativa puoi anche solo compilare i campi e inviarlo senza allegato.
+          </p>
+
+          ${asset.template_path
+            ? `<button class="btn btn-navy" style="margin-bottom:22px" onclick="downloadTemplate('${cat.id}')">⬇ Scarica modulo Word</button>`
+            : `<button class="btn btn-navy" disabled style="opacity:.45;margin-bottom:22px">⬇ Modulo non ancora disponibile</button>`}
+
+          <div style="border-top:1.5px solid var(--lgray);padding-top:20px">
+            <div style="font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;margin-bottom:16px">Invia la tua iscrizione</div>
+
+            <div id="form-err"></div>
+
+            <div class="form-grid2">
+              <div>
+                <label class="lbl">Nome <span class="req">*</span></label>
+                <input type="text" id="f-nome" placeholder="Mario">
+              </div>
+              <div>
+                <label class="lbl">Cognome <span class="req">*</span></label>
+                <input type="text" id="f-cognome" placeholder="Rossi">
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="lbl">Email <span class="req">*</span></label>
+              <input type="email" id="f-email" placeholder="mario@esempio.com">
+            </div>
+            <div class="form-row">
+              <label class="lbl">Telefono</label>
+              <input type="tel" id="f-tel" placeholder="+378 xxx xxxx">
+            </div>
+            <div class="form-row">
+              <label class="lbl">Note</label>
+              <textarea id="f-note" placeholder="Informazioni aggiuntive..."></textarea>
+            </div>
+            <div class="form-row">
+              <label class="lbl">Allega modulo compilato <span style="color:var(--gray);font-weight:400">(facoltativo · max 5 MB)</span></label>
+              <div class="file-drop" id="file-drop" onclick="document.getElementById('file-inp').click()"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="handleFileDrop(event)">
+                <input type="file" id="file-inp" style="display:none" accept=".docx,.pdf,.doc" onchange="handleFileSelect(event)">
+                <div id="file-label">
+                  <div class="file-drop-icon">📎</div>
+                  <div class="file-drop-text">Trascina il file qui o clicca per selezionarlo</div>
+                  <div class="file-drop-hint">.docx · .pdf · max 5 MB</div>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-full" id="submit-btn" onclick="submitForm('${cat.id}')">
+              📤 Invia iscrizione
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — LOGIN
+// ══════════════════════════════════════════════
+function renderAdminLogin() {
+  return `
+  <div class="admin-wrap">
+    <div class="admin-card">
+      <span class="admin-icon">🔒</span>
+      <div class="admin-title">Area Amministratore</div>
+      <div class="admin-sub">Accesso riservato alla Federazione</div>
+      <div id="login-err"></div>
+      <div class="form-row">
+        <label class="lbl">Email</label>
+        <input type="email" id="admin-email" placeholder="admin@basket.sm" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="form-row">
+        <label class="lbl">Password</label>
+        <input type="password" id="admin-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-full" style="margin-top:8px" onclick="doLogin()" id="login-btn">Accedi</button>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — DASHBOARD
+// ══════════════════════════════════════════════
+function renderAdminDash() {
+  const subs = state.submissions;
+  const withFile = subs.filter(s => s.file_path).length;
+  const cats = [...new Set(subs.map(s => s.category_id))].length;
+
+  return `
+  <div class="dash-wrap">
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-title">Pannello Amministratore</h1>
+        <div style="color:var(--gray);font-size:14px">Federazione Basket Sammarinese</div>
+      </div>
+      <div class="dash-actions">
+        <button class="btn btn-navy" onclick="refreshSubs()">🔄 Aggiorna</button>
+        <button class="btn-outline" onclick="doLogout()">Esci</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Iscrizioni totali</div><div class="stat-val">${subs.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Con allegato</div><div class="stat-val">${withFile}</div></div>
+      <div class="stat-card"><div class="stat-label">Categorie attive</div><div class="stat-val">${cats}</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab${state.adminTab==='iscrizioni'?' active':''}" onclick="set({adminTab:'iscrizioni'})">📋 Iscrizioni</button>
+      <button class="tab${state.adminTab==='contenuti'?' active':''}" onclick="set({adminTab:'contenuti'})">📁 Contenuti categorie</button>
+    </div>
+
+    ${state.adminTab === 'iscrizioni' ? renderSubsTab() : renderContentTab()}
+  </div>`;
+}
+
+function renderSubsTab() {
+  if (state.selected) return renderSubDetail();
+  const subs = state.submissions;
+  if (!subs.length) return `
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">Nessuna iscrizione ricevuta</div>
+      <div class="empty-text">Le iscrizioni delle famiglie appariranno qui.</div>
+    </div>`;
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Nome</th><th>Cognome</th><th>Email</th>
+          <th>Categoria</th><th>Data</th><th>Allegato</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${subs.map(s => `
+          <tr onclick="set({selected:'${s.id}'})" style="cursor:pointer">
+            <td>${s.nome}</td>
+            <td>${s.cognome}</td>
+            <td style="color:var(--gray)">${s.email}</td>
+            <td><span class="badge">${s.category_name}</span></td>
+            <td style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
+            <td>${s.file_path ? '📎 Sì' : '<span style="color:var(--gray)">No</span>'}</td>
+            <td><button class="btn btn-sm" onclick="event.stopPropagation();set({selected:'${s.id}'})">Vedi</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderSubDetail() {
+  const s = state.submissions.find(x => x.id === state.selected);
+  if (!s) return '<button class="btn-outline" onclick="set({selected:null})">← Indietro</button>';
+  return `
+    <button class="btn-outline" style="margin-bottom:20px" onclick="set({selected:null})">← Torna all'elenco</button>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:20px">Dettaglio iscrizione</div>
+      <div class="detail-grid">
+        ${[['Nome',s.nome],['Cognome',s.cognome],['Email',s.email],['Telefono',s.telefono||'—'],
+           ['Categoria',s.category_name],['Data invio',fmt(s.created_at)]
+          ].map(([k,v])=>`
+          <div class="detail-item">
+            <div class="detail-key">${k}</div>
+            <div class="detail-val">${v}</div>
+          </div>`).join('')}
+      </div>
+      ${s.note ? `<div class="detail-note"><div class="detail-key">Note</div><div style="font-size:14px;line-height:1.6;margin-top:4px">${s.note}</div></div>` : ''}
+      <div class="detail-actions">
+        ${s.file_path ? `<button class="btn" onclick="downloadSubFile('${s.id}')">⬇ Scarica allegato — ${s.file_name||'file'}</button>` : ''}
+        <button class="btn-danger" onclick="deleteSub('${s.id}')">🗑 Elimina iscrizione</button>
+      </div>
+    </div>`;
+}
+
+function renderContentTab() {
+  return `
+    <div class="card">
+      <div class="card-title">📁 Gestione volantini e moduli</div>
+      <p style="font-size:14px;color:var(--gray);margin-bottom:22px;line-height:1.6">
+        Per ogni categoria puoi caricare un volantino (immagine PNG/JPG/PDF) e un modulo Word da scaricare. I file sostituiscono automaticamente quelli precedenti.
+      </p>
+      ${CATEGORIES.map(cat => {
+        const a = state.assets[cat.id] || {};
+        return `
+        <div class="asset-row">
+          <div>
+            <div class="asset-cat">${cat.icon} ${cat.name}</div>
+          </div>
+          <div class="asset-slots">
+            <div class="asset-slot ${a.flyer_path?'asset-slot-ok':'asset-slot-miss'}">
+              ${a.flyer_path ? '✅' : '⬜'} Volantino
+              <button class="btn btn-sm" onclick="triggerAsset('${cat.id}','flyer')">
+                ${a.flyer_path ? 'Sostituisci' : 'Carica'}
+              </button>
+            </div>
+            <div class="asset-slot ${a.template_path?'asset-slot-ok':'asset-slot-miss'}">
+              ${a.template_path ? '✅' : '⬜'} Modulo Word
+              <button class="btn btn-sm btn-navy" onclick="triggerAsset('${cat.id}','template')">
+                ${a.template_path ? 'Sostituisci' : 'Carica'}
+              </button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <input type="file" id="asset-inp" style="display:none" onchange="handleAssetUpload(event)">`;
+}
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+function render() {
+  renderNav();
+  const app = document.getElementById('app');
+  if (state.page === 'home') app.innerHTML = renderHome();
+  else if (state.page === 'category') app.innerHTML = renderCategory();
+  else if (state.page === 'admin') {
+    if (!state.user) app.innerHTML = renderAdminLogin();
+    else app.innerHTML = renderAdminDash();
+  }
+}
+
+// ══════════════════════════════════════════════
+// FORM (public)
+// ══════════════════════════════════════════════
+let _pendingFile = null;
+let _pendingAssetMeta = null; // {catId, kind}
+
+function handleFileSelect(e) {
+  const f = e.target.files[0];
+  if (f) { _pendingFile = f; updateFileLabel(f); }
+}
+function handleFileDrop(e) {
+  e.preventDefault();
+  document.getElementById('file-drop')?.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) { _pendingFile = f; updateFileLabel(f); }
+}
+function updateFileLabel(f) {
+  const el = document.getElementById('file-label');
+  if (el) el.innerHTML = `<div class="file-name">✅ ${f.name}</div><div class="file-meta">${fmtSize(f.size)} · Clicca per cambiare</div>`;
+}
+
+async function submitForm(catId) {
+  const nome = document.getElementById('f-nome')?.value.trim();
+  const cognome = document.getElementById('f-cognome')?.value.trim();
+  const email = document.getElementById('f-email')?.value.trim();
+  const telefono = document.getElementById('f-tel')?.value.trim();
+  const note = document.getElementById('f-note')?.value.trim();
+  const errEl = document.getElementById('form-err');
+
+  if (!nome || !cognome || !email) {
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Compila tutti i campi obbligatori (Nome, Cognome, Email).</div>`;
+    return;
+  }
+  if (!email.includes('@')) {
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Inserisci un indirizzo email valido.</div>`;
+    return;
+  }
+  if (_pendingFile && _pendingFile.size > 5*1024*1024) {
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Il file è troppo grande (max 5 MB).</div>`;
+    return;
+  }
+  errEl.innerHTML = '';
+  const btn = document.getElementById('submit-btn');
+  if (btn) btn.innerHTML = '<span class="loader"></span> Invio in corso...';
+  if (btn) btn.disabled = true;
+
+  try {
+    let filePath = null, fileName = null;
+    if (_pendingFile) {
+      const ext = _pendingFile.name.split('.').pop();
+      filePath = `${catId}/${Date.now()}.${ext}`;
+      const { error: upErr } = await db.storage.from('submission-files').upload(filePath, _pendingFile);
+      if (upErr) throw upErr;
+      fileName = _pendingFile.name;
+    }
+    const { error } = await db.from('submissions').insert({
+      category_id: catId,
+      category_name: catById(catId)?.name || catId,
+      nome, cognome, email,
+      telefono: telefono || null,
+      note: note || null,
+      file_path: filePath,
+      file_name: fileName,
+    });
+    if (error) throw error;
+    _pendingFile = null;
+    set({ formSuccess: true });
+    toast('Iscrizione inviata con successo!', 'ok');
+  } catch (e) {
+    if (btn) { btn.innerHTML = '📤 Invia iscrizione'; btn.disabled = false; }
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Errore durante l'invio. Riprova tra qualche istante.</div>`;
+    console.error(e);
+  }
+}
+
+// ══════════════════════════════════════════════
+// ADMIN AUTH
+// ══════════════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('admin-email')?.value.trim();
+  const pwd   = document.getElementById('admin-pwd')?.value;
+  const btn   = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-err');
+  if (!email || !pwd) { errEl.innerHTML = `<div class="alert alert-err">Inserisci email e password.</div>`; return; }
+  if (btn) { btn.innerHTML = '<span class="loader"></span>'; btn.disabled = true; }
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pwd });
+  if (error) {
+    if (btn) { btn.innerHTML = 'Accedi'; btn.disabled = false; }
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Credenziali non valide. Riprova.</div>`;
+  } else {
+    state.user = data.user;
+    await refreshSubs();
+    await loadAssets();
+    render();
+    toast('Accesso effettuato', 'ok');
+  }
+}
+
+async function doLogout() {
+  await db.auth.signOut();
+  set({ user: null, submissions: [], selected: null });
+  toast('Disconnesso');
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — SUBMISSIONS
+// ══════════════════════════════════════════════
+async function refreshSubs() {
+  const { data, error } = await db.from('submissions').select('*').order('created_at', { ascending: false });
+  if (!error) state.submissions = data || [];
+  render();
+}
+
+async function downloadSubFile(subId) {
+  const s = state.submissions.find(x => x.id === subId);
+  if (!s?.file_path) return;
+  const { data, error } = await db.storage.from('submission-files').createSignedUrl(s.file_path, 120);
+  if (error) { toast('Errore nel download', 'err'); return; }
+  const a = document.createElement('a');
+  a.href = data.signedUrl;
+  a.download = s.file_name || 'allegato';
+  a.click();
+}
+
+async function deleteSub(subId) {
+  if (!confirm('Eliminare questa iscrizione? L\'operazione non è reversibile.')) return;
+  const s = state.submissions.find(x => x.id === subId);
+  if (s?.file_path) {
+    await db.storage.from('submission-files').remove([s.file_path]);
+  }
+  const { error } = await db.from('submissions').delete().eq('id', subId);
+  if (error) { toast('Errore eliminazione', 'err'); return; }
+  state.submissions = state.submissions.filter(x => x.id !== subId);
+  set({ selected: null });
+  toast('Iscrizione eliminata');
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — ASSET MANAGEMENT
+// ══════════════════════════════════════════════
+async function loadAssets() {
+  const { data } = await db.from('category_assets').select('*');
+  if (data) {
+    state.assets = {};
+    for (const row of data) {
+      state.assets[row.category_id] = row;
+      if (row.flyer_path) {
+        const { data: urlData } = db.storage.from('category-assets').getPublicUrl(row.flyer_path);
+        state.assets[row.category_id].flyer_url = urlData?.publicUrl;
+      }
+    }
+  }
+}
+
+function triggerAsset(catId, kind) {
+  _pendingAssetMeta = { catId, kind };
+  const inp = document.getElementById('asset-inp');
+  if (kind === 'flyer') inp.accept = 'image/*,.pdf';
+  else inp.accept = '.docx,.doc';
+  inp.value = '';
+  inp.click();
+}
+
+async function handleAssetUpload(e) {
+  const file = e.target.files[0];
+  if (!file || !_pendingAssetMeta) return;
+  const { catId, kind } = _pendingAssetMeta;
+
+  if (file.size > 10*1024*1024) { toast('File troppo grande (max 10 MB)', 'err'); return; }
+
+  const ext = file.name.split('.').pop();
+  const path = `${catId}/${kind}.${ext}`;
+
+  // Remove old file if exists
+  const old = state.assets[catId];
+  if (old) {
+    const oldPath = kind === 'flyer' ? old.flyer_path : old.template_path;
+    if (oldPath) await db.storage.from('category-assets').remove([oldPath]);
+  }
+
+  const { error: upErr } = await db.storage.from('category-assets').upload(path, file, { upsert: true });
+  if (upErr) { toast('Errore upload: ' + upErr.message, 'err'); return; }
+
+  const update = kind === 'flyer'
+    ? { category_id: catId, flyer_path: path, flyer_name: file.name }
+    : { category_id: catId, template_path: path, template_name: file.name };
+
+  const { error } = await db.from('category_assets').upsert(update, { onConflict: 'category_id' });
+  if (error) { toast('Errore salvataggio', 'err'); return; }
+
+  toast(`${kind === 'flyer' ? 'Volantino' : 'Modulo'} caricato!`, 'ok');
+  await loadAssets();
+  render();
+}
+
+async function downloadTemplate(catId) {
+  const a = state.assets[catId];
+  if (!a?.template_path) return;
+  const { data, error } = await db.storage.from('category-assets').createSignedUrl(a.template_path, 60);
+  if (error) { toast('Errore nel download', 'err'); return; }
+  const link = document.createElement('a');
+  link.href = data.signedUrl;
+  link.download = a.template_name || 'modulo.docx';
+  link.click();
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+async function init() {
+  const { data: { session } } = await db.auth.getSession();
+  state.user = session?.user || null;
+  await loadAssets();
+  if (state.user) await refreshSubs();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
