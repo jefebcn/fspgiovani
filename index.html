@@ -397,28 +397,6 @@ function renderCategory() {
 
             <div id="form-err"></div>
 
-            <div class="form-grid2">
-              <div>
-                <label class="lbl">Nome <span class="req">*</span></label>
-                <input type="text" id="f-nome" placeholder="Mario">
-              </div>
-              <div>
-                <label class="lbl">Cognome <span class="req">*</span></label>
-                <input type="text" id="f-cognome" placeholder="Rossi">
-              </div>
-            </div>
-            <div class="form-row">
-              <label class="lbl">Email <span class="req">*</span></label>
-              <input type="email" id="f-email" placeholder="mario@esempio.com">
-            </div>
-            <div class="form-row">
-              <label class="lbl">Telefono</label>
-              <input type="tel" id="f-tel" placeholder="+378 xxx xxxx">
-            </div>
-            <div class="form-row">
-              <label class="lbl">Note</label>
-              <textarea id="f-note" placeholder="Informazioni aggiuntive..."></textarea>
-            </div>
             <div class="form-row">
               <label class="lbl">Allega modulo compilato <span style="color:var(--gray);font-weight:400">(facoltativo · max 5 MB)</span></label>
               <div class="file-drop" id="file-drop" onclick="document.getElementById('file-inp').click()"
@@ -629,21 +607,8 @@ function updateFileLabel(f) {
 }
 
 async function submitForm(catId) {
-  const nome = document.getElementById('f-nome')?.value.trim();
-  const cognome = document.getElementById('f-cognome')?.value.trim();
-  const email = document.getElementById('f-email')?.value.trim();
-  const telefono = document.getElementById('f-tel')?.value.trim();
-  const note = document.getElementById('f-note')?.value.trim();
   const errEl = document.getElementById('form-err');
 
-  if (!nome || !cognome || !email) {
-    errEl.innerHTML = `<div class="alert alert-err">⚠ Compila tutti i campi obbligatori (Nome, Cognome, Email).</div>`;
-    return;
-  }
-  if (!email.includes('@')) {
-    errEl.innerHTML = `<div class="alert alert-err">⚠ Inserisci un indirizzo email valido.</div>`;
-    return;
-  }
   if (_pendingFile && _pendingFile.size > 5*1024*1024) {
     errEl.innerHTML = `<div class="alert alert-err">⚠ Il file è troppo grande (max 5 MB).</div>`;
     return;
@@ -665,9 +630,6 @@ async function submitForm(catId) {
     const { error } = await db.from('submissions').insert({
       category_id: catId,
       category_name: catById(catId)?.name || catId,
-      nome, cognome, email,
-      telefono: telefono || null,
-      note: note || null,
       file_path: filePath,
       file_name: fileName,
     });
