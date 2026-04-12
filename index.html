@@ -226,8 +226,8 @@ footer span{color:rgba(255,255,255,.25);font-size:12px;display:block;margin-top:
 // ═══════════════════════════════════════════════════════
 // ⚙️  CONFIG — modifica questi valori
 // ═══════════════════════════════════════════════════════
-const SUPABASE_URL  = 'https://wbuxofdvnwqrtcswstar.supabase.co';
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndidXhvZmR2bndxcnRjc3dzdGFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDg2NTIsImV4cCI6MjA5MTQ4NDY1Mn0.EHJ-naRbO-h2zFjGGqBdvhV7jIheofKihHmfWDOzuPA';
+const SUPABASE_URL  = 'https://TUO-PROGETTO.supabase.co';
+const SUPABASE_KEY  = 'TUA-ANON-KEY';
 
 const CATEGORIES = [
   { id:'centro-estivo', name:'Centro Estivo',  icon:'☀️', desc:'Attività estive per i più piccoli' },
@@ -284,7 +284,7 @@ function renderNav() {
   wrap.innerHTML = CATEGORIES.map(c =>
     `<span class="nav-link${state.catId===c.id?' active':''}" onclick="navigate('category','${c.id}')">${c.name}</span>`
   ).join('') +
-  `<span class="nav-admin" onclick="navigate('admin')" title="Area amministratore">🔒</span>`;
+  ``;
 }
 
 // ══════════════════════════════════════════════
@@ -821,8 +821,13 @@ async function init() {
   state.user = session?.user || null;
   await loadAssets();
   if (state.user) await refreshSubs();
+  if (window.location.hash === '#admin') state.page = 'admin';
   render();
 }
+
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === '#admin') { state.page = 'admin'; render(); }
+});
 
 init();
 </script>
