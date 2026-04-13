@@ -267,6 +267,9 @@ const { createClient } = window.supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, storageKey: 'fsp-auth', storage: window.localStorage }
 });
+const dbPublic = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false }
+});
 
 // ── STATE ──
 const state = {
@@ -719,7 +722,7 @@ async function submitForm(catId) {
         const ext = f.name.split('.').pop();
         const path = `${catId}/${ts}_${key}.${ext}`;
         console.log(`[submitForm] uploading ${key}: path=${path}, size=${f.size}, type=${f.type}`);
-        const { error: upErr } = await db.storage.from('submission-files').upload(path, f);
+        const { error: upErr } = await dbPublic.storage.from('submission-files').upload(path, f);
         if (upErr) { console.error(`[submitForm] UPLOAD ERROR for ${key}:`, upErr); throw upErr; }
         console.log(`[submitForm] uploaded ${key} OK`);
         paths[key] = path;
@@ -734,7 +737,7 @@ async function submitForm(catId) {
       file_name: hasFiles ? JSON.stringify(names) : null,
     };
     console.log('[submitForm] INSERT data:', JSON.stringify(insertData));
-    const { error, data: insertResult } = await db.from('submissions').insert(insertData).select();
+    const { error, data: insertResult } = await dbPublic.from('submissions').insert(insertData).select();
     console.log('[submitForm] INSERT result:', insertResult, 'error:', error);
     if (error) throw error;
     _pendingFiles.modulo = null; _pendingFiles.documento = null; _pendingFiles.certificato = null;
