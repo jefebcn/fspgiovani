@@ -512,6 +512,7 @@ function renderAdminLogin() {
         <input type="password" id="admin-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="btn btn-full" style="margin-top:8px" onclick="doLogin()" id="login-btn">Accedi</button>
+      <button class="btn-outline" style="margin-top:12px;width:100%;justify-content:center" onclick="navigate('home')">← Torna alla home</button>
     </div>
   </div>`;
 }
@@ -773,7 +774,7 @@ async function doLogin() {
 
 async function doLogout() {
   await db.auth.signOut();
-  set({ user: null, submissions: [], selected: null });
+  set({ user: null, submissions: [], selected: null, page: 'admin' });
   toast('Disconnesso');
 }
 
