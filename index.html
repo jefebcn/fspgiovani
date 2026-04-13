@@ -112,7 +112,6 @@ nav.nav-hidden{transform:translateY(-100%)}
 .btn-sm{padding:6px 14px;font-size:12px}
 
 /* FORM */
-.form-row{margin-bottom:16px}
 .form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 label.lbl{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;display:block}
 .req{color:var(--orange)}
@@ -121,12 +120,13 @@ input[type=text],input[type=email],input[type=tel],input[type=password],textarea
   font-family:'Nunito',sans-serif;color:var(--navy);background:#fff;outline:none;transition:border-color .15s}
 input:focus,textarea:focus,select:focus{border-color:var(--orange)}
 textarea{resize:vertical;min-height:80px;line-height:1.5}
-.file-drop{border:2px dashed var(--lgray);border-radius:8px;padding:20px 16px;text-align:center;cursor:pointer;background:var(--off);transition:all .15s;user-select:none;-webkit-user-select:none;overflow:hidden;max-width:100%;box-sizing:border-box}
+.form-row{margin-bottom:16px;width:100%;max-width:100%;overflow:hidden;box-sizing:border-box}
+.file-drop{border:2px dashed var(--lgray);border-radius:8px;padding:20px 16px;text-align:center;cursor:pointer;background:var(--off);transition:all .15s;user-select:none;-webkit-user-select:none;width:100%;max-width:100%;overflow:hidden;box-sizing:border-box;min-width:0}
 .file-drop:hover,.file-drop.drag{border-color:var(--orange);background:#fff8f2}
 .file-drop-icon{font-size:22px;margin-bottom:6px}
 .file-drop-text{font-size:14px;color:var(--gray)}
 .file-drop-hint{font-size:12px;color:var(--gray);margin-top:4px}
-.file-name{color:var(--success);font-weight:700;font-size:14px;margin-bottom:4px;display:block;max-width:100%;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;box-sizing:border-box}
+.file-name{color:var(--success);font-weight:700;font-size:14px;margin-bottom:4px}
 .file-meta{font-size:12px;color:var(--gray)}
 
 /* ALERTS */
@@ -671,9 +671,17 @@ function handleMultiDrop(e, key) {
   const f = e.dataTransfer.files[0];
   if (f) { _pendingFiles[key] = f; updateMultiLabel(key, f); updateFileSummary(); }
 }
+function truncName(name, max) {
+  if (name.length <= max) return name;
+  const dot = name.lastIndexOf('.');
+  const ext = dot > 0 ? name.slice(dot) : '';
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const keep = max - ext.length - 3;
+  return keep > 0 ? base.slice(0, keep) + '...' + ext : name.slice(0, max - 3) + '...';
+}
 function updateMultiLabel(key, f) {
   const el = document.getElementById('file-label-' + key);
-  if (el) el.innerHTML = `<div class="file-name">✅ ${f.name}</div><div class="file-meta">${fmtSize(f.size)} · Clicca per cambiare</div>`;
+  if (el) el.innerHTML = `<div class="file-name">✅ ${truncName(f.name, 25)}</div><div class="file-meta">${fmtSize(f.size)} · Clicca per cambiare</div>`;
 }
 function updateFileSummary() {
   const count = Object.values(_pendingFiles).filter(Boolean).length;
