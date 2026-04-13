@@ -565,15 +565,11 @@ function renderSubsTab() {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Nome</th><th>Cognome</th><th>Email</th>
-          <th>Categoria</th><th>Data</th><th>Allegato</th><th></th>
+          <th>Categoria</th><th>Data</th><th>Allegati</th><th></th>
         </tr></thead>
         <tbody>
           ${subs.map(s => `
           <tr onclick="set({selected:'${s.id}'})" style="cursor:pointer">
-            <td>${s.nome}</td>
-            <td>${s.cognome}</td>
-            <td style="color:var(--gray)">${s.email}</td>
             <td><span class="badge">${s.category_name}</span></td>
             <td style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
             <td>${s.file_path ? '📎 Sì' : '<span style="color:var(--gray)">No</span>'}</td>
@@ -592,15 +588,13 @@ function renderSubDetail() {
     <div class="card">
       <div class="card-title" style="margin-bottom:20px">Dettaglio iscrizione</div>
       <div class="detail-grid">
-        ${[['Nome',s.nome],['Cognome',s.cognome],['Email',s.email],['Telefono',s.telefono||'—'],
-           ['Categoria',s.category_name],['Data invio',fmt(s.created_at)]
+        ${[['Categoria',s.category_name],['Data invio',fmt(s.created_at)]
           ].map(([k,v])=>`
           <div class="detail-item">
             <div class="detail-key">${k}</div>
             <div class="detail-val">${v}</div>
           </div>`).join('')}
       </div>
-      ${s.note ? `<div class="detail-note"><div class="detail-key">Note</div><div style="font-size:14px;line-height:1.6;margin-top:4px">${s.note}</div></div>` : ''}
       <div class="detail-actions">
         ${(()=>{
           const fp = parseFilePaths(s.file_path);
