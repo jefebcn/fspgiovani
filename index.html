@@ -13,7 +13,8 @@
   --success:#16a34a; --err:#dc2626;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Nunito',sans-serif;color:var(--navy);background:var(--off);min-height:100vh}
+body{font-family:'Nunito',sans-serif;color:var(--navy);background:var(--off);min-height:100vh;display:flex;flex-direction:column}
+#app{flex:1}
 a{text-decoration:none;color:inherit}
 
 /* NAV */
@@ -198,7 +199,7 @@ tr:hover td{background:#fafafa}
 .toast-msg.err{background:#991b1b}
 
 /* FOOTER */
-footer{background:var(--navy);color:rgba(255,255,255,.45);text-align:center;padding:24px 16px;font-size:13px;margin-top:40px;word-break:break-word;overflow-wrap:break-word}
+footer{background:var(--navy);color:rgba(255,255,255,.45);text-align:center;padding:24px 16px;font-size:13px;margin-top:auto;word-break:break-word;overflow-wrap:break-word}
 footer span{color:rgba(255,255,255,.25);font-size:12px;display:block;margin-top:5px}
 
 /* RESPONSIVE */
