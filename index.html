@@ -6,6 +6,7 @@
 <title>Federazione Basket Sammarinese · Sezione Giovani</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --navy:#0d1f3c; --navy-l:#1a3560; --orange:#f47c20; --orange-l:#f9a55f;
@@ -281,6 +282,7 @@ const state = {
   selected: null,
   assets: {},       // {catId: {flyer_path, flyer_url, template_path, template_name}}
   adminTab: 'iscrizioni',
+  filterCat: '',
   formSuccess: false,
   loading: false,
 };
@@ -556,16 +558,32 @@ function renderAdminDash() {
   </div>`;
 }
 
+function getFilteredSubs() {
+  return state.filterCat ? state.submissions.filter(s => s.category_id === state.filterCat) : state.submissions;
+}
+
 function renderSubsTab() {
   if (state.selected) return renderSubDetail();
-  const subs = state.submissions;
-  if (!subs.length) return `
+  const allSubs = state.submissions;
+  if (!allSubs.length) return `
     <div class="empty-state">
       <div class="empty-icon">📭</div>
       <div class="empty-title">Nessuna iscrizione ricevuta</div>
       <div class="empty-text">Le iscrizioni delle famiglie appariranno qui.</div>
     </div>`;
+  const subs = getFilteredSubs();
+  const catOptions = CATEGORIES.map(c =>
+    `<option value="${c.id}"${state.filterCat===c.id?' selected':''}>${c.name}</option>`
+  ).join('');
   return `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <select onchange="set({filterCat:this.value})" style="padding:8px 12px;border:1.5px solid var(--lgray);border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;background:#fff;color:var(--navy)">
+        <option value="">Tutte le categorie</option>
+        ${catOptions}
+      </select>
+      <button class="btn btn-sm" onclick="exportExcel()">📥 Esporta Excel</button>
+      <span style="color:var(--gray);font-size:13px">${subs.length} iscrizioni</span>
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr>
@@ -582,6 +600,28 @@ function renderSubsTab() {
         </tbody>
       </table>
     </div>`;
+}
+
+function exportExcel() {
+  const subs = getFilteredSubs();
+  const rows = subs.map(s => {
+    const fp = parseFilePaths(s.file_path);
+    const hasModulo = typeof fp === 'object' ? !!fp.modulo : !!fp;
+    const hasDoc = typeof fp === 'object' ? !!fp.documento : false;
+    const hasCert = typeof fp === 'object' ? !!fp.certificato : false;
+    return {
+      'Categoria': s.category_name || '',
+      'Data': fmtDate(s.created_at),
+      'Modulo allegato': hasModulo ? 'Sì' : 'No',
+      'Documento identità': hasDoc ? 'Sì' : 'No',
+      'Certificato medico': hasCert ? 'Sì' : 'No',
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:22},{wch:14},{wch:16},{wch:20},{wch:18}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Iscrizioni');
+  XLSX.writeFile(wb, `iscrizioni_${state.filterCat || 'tutte'}_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function renderSubDetail() {
