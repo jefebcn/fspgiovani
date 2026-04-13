@@ -599,9 +599,13 @@ function renderSubDetail() {
       </div>
       ${s.note ? `<div class="detail-note"><div class="detail-key">Note</div><div style="font-size:14px;line-height:1.6;margin-top:4px">${s.note}</div></div>` : ''}
       <div class="detail-actions">
-        ${s.file_path ? `<button class="btn" onclick="downloadSubFile('${s.id}','file_path','file_name')">📄 Scarica modulo — ${s.file_name||'file'}</button>` : ''}
-        ${s.doc_path ? `<button class="btn" onclick="downloadSubFile('${s.id}','doc_path','doc_name')">🪪 Scarica documento — ${s.doc_name||'file'}</button>` : ''}
-        ${s.cert_path ? `<button class="btn" onclick="downloadSubFile('${s.id}','cert_path','cert_name')">🏥 Scarica certificato — ${s.cert_name||'file'}</button>` : ''}
+        ${(()=>{
+          const fp = parseFilePaths(s.file_path);
+          const fn = parseFilePaths(s.file_name);
+          if (typeof fp === 'string') return fp ? `<button class="btn" onclick="downloadSubSingle('${s.id}')">📄 Scarica allegato — ${fn||'file'}</button>` : '';
+          const labels = {modulo:'📄 Modulo',documento:'🪪 Documento',certificato:'🏥 Certificato'};
+          return Object.keys(fp).map(k => `<button class="btn" onclick="downloadSubByKey('${s.id}','${k}')">${labels[k]||k} — ${truncName(fn[k]||'file',25)}</button>`).join('');
+        })()}
         <button class="btn-danger" onclick="deleteSub('${s.id}')">🗑 Elimina iscrizione</button>
       </div>
     </div>`;
@@ -706,7 +710,8 @@ async function submitForm(catId) {
 
   try {
     const ts = Date.now();
-    const uploaded = {};
+    const paths = {};
+    const names = {};
     for (const key of keys) {
       const f = _pendingFiles[key];
       if (f) {
@@ -714,18 +719,16 @@ async function submitForm(catId) {
         const path = `${catId}/${ts}_${key}.${ext}`;
         const { error: upErr } = await db.storage.from('submission-files').upload(path, f);
         if (upErr) throw upErr;
-        uploaded[key] = { path, name: f.name };
+        paths[key] = path;
+        names[key] = f.name;
       }
     }
+    const hasFiles = Object.keys(paths).length > 0;
     const { error } = await db.from('submissions').insert({
       category_id: catId,
       category_name: catById(catId)?.name || catId,
-      file_path: uploaded.modulo?.path || null,
-      file_name: uploaded.modulo?.name || null,
-      doc_path: uploaded.documento?.path || null,
-      doc_name: uploaded.documento?.name || null,
-      cert_path: uploaded.certificato?.path || null,
-      cert_name: uploaded.certificato?.name || null,
+      file_path: hasFiles ? JSON.stringify(paths) : null,
+      file_name: hasFiles ? JSON.stringify(names) : null,
     });
     if (error) throw error;
     _pendingFiles.modulo = null; _pendingFiles.documento = null; _pendingFiles.certificato = null;
@@ -776,23 +779,42 @@ async function refreshSubs() {
   render();
 }
 
-async function downloadSubFile(subId, pathKey, nameKey) {
-  pathKey = pathKey || 'file_path';
-  nameKey = nameKey || 'file_name';
+function parseFilePaths(val) {
+  if (!val) return null;
+  try { const p = JSON.parse(val); return (typeof p === 'object' && p !== null) ? p : val; }
+  catch { return val; }
+}
+
+async function downloadSubSingle(subId) {
   const s = state.submissions.find(x => x.id === subId);
-  if (!s?.[pathKey]) return;
-  const { data, error } = await db.storage.from('submission-files').createSignedUrl(s[pathKey], 120);
+  if (!s?.file_path) return;
+  const fp = parseFilePaths(s.file_path);
+  const fn = parseFilePaths(s.file_name);
+  const path = typeof fp === 'string' ? fp : Object.values(fp)[0];
+  const name = typeof fn === 'string' ? fn : Object.values(fn)[0];
+  const { data, error } = await db.storage.from('submission-files').createSignedUrl(path, 120);
   if (error) { toast('Errore nel download', 'err'); return; }
-  const a = document.createElement('a');
-  a.href = data.signedUrl;
-  a.download = s[nameKey] || 'allegato';
-  a.click();
+  const a = document.createElement('a'); a.href = data.signedUrl; a.download = name || 'allegato'; a.click();
+}
+
+async function downloadSubByKey(subId, key) {
+  const s = state.submissions.find(x => x.id === subId);
+  if (!s?.file_path) return;
+  const fp = parseFilePaths(s.file_path);
+  const fn = parseFilePaths(s.file_name);
+  const path = typeof fp === 'object' ? fp[key] : fp;
+  const name = typeof fn === 'object' ? fn[key] : fn;
+  if (!path) return;
+  const { data, error } = await db.storage.from('submission-files').createSignedUrl(path, 120);
+  if (error) { toast('Errore nel download', 'err'); return; }
+  const a = document.createElement('a'); a.href = data.signedUrl; a.download = name || 'allegato'; a.click();
 }
 
 async function deleteSub(subId) {
   if (!confirm('Eliminare questa iscrizione? L\'operazione non è reversibile.')) return;
   const s = state.submissions.find(x => x.id === subId);
-  const filesToRemove = [s?.file_path, s?.doc_path, s?.cert_path].filter(Boolean);
+  const fp = parseFilePaths(s?.file_path);
+  const filesToRemove = typeof fp === 'object' && fp ? Object.values(fp) : (fp ? [fp] : []);
   if (filesToRemove.length) {
     await db.storage.from('submission-files').remove(filesToRemove);
   }
