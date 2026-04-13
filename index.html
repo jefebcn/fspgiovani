@@ -313,11 +313,13 @@ function renderNav() {
   const links = CATEGORIES.map(c =>
     `<span class="nav-link${state.catId===c.id?' active':''}" onclick="navigate('category','${c.id}')">${c.name}</span>`
   ).join('');
-  wrap.innerHTML = links + (state.user ? `<span class="nav-admin" onclick="navigate('admin')">⚙ Admin</span>` : '');
+  const adminLink = state.user ? `<span class="nav-link${state.page==='admin'?' active':''}" onclick="navigate('admin')">👑 Admin</span>` : '';
+  wrap.innerHTML = adminLink + links;
   const mob = document.getElementById('mobile-menu');
-  if (mob) mob.innerHTML = CATEGORIES.map(c =>
+  const adminLinkMob = state.user ? `<span class="nav-link${state.page==='admin'?' active':''}" onclick="navigate('admin');toggleMobileMenu()">👑 Admin</span>` : '';
+  if (mob) mob.innerHTML = adminLinkMob + CATEGORIES.map(c =>
     `<span class="nav-link${state.catId===c.id?' active':''}" onclick="navigate('category','${c.id}');toggleMobileMenu()">${c.name}</span>`
-  ).join('') + (state.user ? `<span class="nav-link" onclick="navigate('admin');toggleMobileMenu()" style="color:rgba(255,255,255,.4);font-size:12px">⚙ Pannello admin</span>` : '');
+  ).join('');
 }
 
 function toggleMobileMenu() {
