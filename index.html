@@ -712,24 +712,30 @@ async function submitForm(catId) {
     const ts = Date.now();
     const paths = {};
     const names = {};
+    console.log('[submitForm] START catId=', catId, 'pendingFiles=', {modulo:!!_pendingFiles.modulo, documento:!!_pendingFiles.documento, certificato:!!_pendingFiles.certificato});
     for (const key of keys) {
       const f = _pendingFiles[key];
       if (f) {
         const ext = f.name.split('.').pop();
         const path = `${catId}/${ts}_${key}.${ext}`;
+        console.log(`[submitForm] uploading ${key}: path=${path}, size=${f.size}, type=${f.type}`);
         const { error: upErr } = await db.storage.from('submission-files').upload(path, f);
-        if (upErr) throw upErr;
+        if (upErr) { console.error(`[submitForm] UPLOAD ERROR for ${key}:`, upErr); throw upErr; }
+        console.log(`[submitForm] uploaded ${key} OK`);
         paths[key] = path;
         names[key] = f.name;
       }
     }
     const hasFiles = Object.keys(paths).length > 0;
-    const { error } = await db.from('submissions').insert({
+    const insertData = {
       category_id: catId,
       category_name: catById(catId)?.name || catId,
       file_path: hasFiles ? JSON.stringify(paths) : null,
       file_name: hasFiles ? JSON.stringify(names) : null,
-    });
+    };
+    console.log('[submitForm] INSERT data:', JSON.stringify(insertData));
+    const { error, data: insertResult } = await db.from('submissions').insert(insertData).select();
+    console.log('[submitForm] INSERT result:', insertResult, 'error:', error);
     if (error) throw error;
     _pendingFiles.modulo = null; _pendingFiles.documento = null; _pendingFiles.certificato = null;
     set({ formSuccess: true });
@@ -737,7 +743,11 @@ async function submitForm(catId) {
   } catch (e) {
     if (btn) { btn.innerHTML = '📤 Invia iscrizione'; btn.disabled = false; }
     errEl.innerHTML = `<div class="alert alert-err">⚠ Errore durante l'invio. Riprova tra qualche istante.</div>`;
-    console.error(e);
+    console.error('[submitForm] CATCH error:', e);
+    console.error('[submitForm] error message:', e?.message);
+    console.error('[submitForm] error details:', e?.details);
+    console.error('[submitForm] error hint:', e?.hint);
+    console.error('[submitForm] error code:', e?.code);
   }
 }
 
