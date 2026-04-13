@@ -30,6 +30,24 @@ nav.nav-hidden{transform:translateY(-100%)}
 .nav-admin{color:rgba(255,255,255,.4);font-size:11px;padding:5px 8px;border-radius:6px;cursor:pointer;transition:all .15s;border:1px solid rgba(255,255,255,.12);margin-left:8px}
 .nav-admin:hover{color:var(--orange);border-color:rgba(244,124,32,.4)}
 
+/* HAMBURGER */
+.hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;cursor:pointer;padding:8px;margin-left:auto;z-index:101}
+.hamburger span{display:block;width:24px;height:2.5px;background:#fff;border-radius:2px;transition:transform .3s ease,opacity .3s ease}
+.hamburger.open span:nth-child(1){transform:translateY(7.5px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-7.5px) rotate(-45deg)}
+
+/* MOBILE MENU */
+.mobile-menu{display:none;flex-direction:column;background:var(--navy);position:absolute;top:100%;left:0;right:0;padding:12px 24px 20px;box-shadow:0 8px 24px rgba(0,0,0,.4);gap:4px;max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease}
+.mobile-menu.open{max-height:500px;padding:12px 24px 20px}
+.mobile-menu .nav-link{display:block;padding:12px 10px;font-size:15px;border-bottom:1px solid rgba(255,255,255,.06)}
+.mobile-menu .nav-link:last-child{border-bottom:none}
+
+@media(max-width:720px){
+  .hamburger{display:flex}
+  .mobile-menu{display:flex;max-height:0;padding:0 24px}
+}
+
 /* HERO */
 .hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-l) 55%,#2a4a7f 100%);padding:60px 24px 52px;text-align:center;overflow:hidden;position:relative}
 .hero-bg1,.hero-bg2{position:absolute;border-radius:50%;background:rgba(244,124,32,.07);pointer-events:none}
@@ -210,6 +228,10 @@ footer span{color:rgba(255,255,255,.25);font-size:12px;display:block;margin-top:
     </div>
   </div>
   <div class="nav-links" id="nav-links"></div>
+  <div class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
 </nav>
 
 <!-- APP -->
@@ -285,10 +307,19 @@ function navigate(page, catId = null) {
 // ── NAV LINKS ──
 function renderNav() {
   const wrap = document.getElementById('nav-links');
-  wrap.innerHTML = CATEGORIES.map(c =>
+  const links = CATEGORIES.map(c =>
     `<span class="nav-link${state.catId===c.id?' active':''}" onclick="navigate('category','${c.id}')">${c.name}</span>`
-  ).join('') +
-  ``;
+  ).join('');
+  wrap.innerHTML = links;
+  const mob = document.getElementById('mobile-menu');
+  if (mob) mob.innerHTML = CATEGORIES.map(c =>
+    `<span class="nav-link${state.catId===c.id?' active':''}" onclick="navigate('category','${c.id}');toggleMobileMenu()">${c.name}</span>`
+  ).join('');
+}
+
+function toggleMobileMenu() {
+  document.getElementById('hamburger').classList.toggle('open');
+  document.getElementById('mobile-menu').classList.toggle('open');
 }
 
 // ══════════════════════════════════════════════
