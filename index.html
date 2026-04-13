@@ -241,7 +241,9 @@ const CATEGORIES = [
 // ═══════════════════════════════════════════════════════
 
 const { createClient } = window.supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, storageKey: 'fsp-auth', storage: window.localStorage }
+});
 
 // ── STATE ──
 const state = {
@@ -655,7 +657,7 @@ async function doLogin() {
   const errEl = document.getElementById('login-err');
   if (!email || !pwd) { errEl.innerHTML = `<div class="alert alert-err">Inserisci email e password.</div>`; return; }
   if (btn) { btn.innerHTML = '<span class="loader"></span>'; btn.disabled = true; }
-  const { data, error } = await db.auth.signInWithPassword({ email, password: pwd });
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pwd, options: { persistSession: true } });
   if (error) {
     if (btn) { btn.innerHTML = 'Accedi'; btn.disabled = false; }
     errEl.innerHTML = `<div class="alert alert-err">⚠ Credenziali non valide. Riprova.</div>`;
