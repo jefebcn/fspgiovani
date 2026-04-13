@@ -433,19 +433,52 @@ function renderCategory() {
             <div id="form-err"></div>
 
             <div class="form-row">
-              <label class="lbl">Allega modulo compilato <span style="color:var(--gray);font-weight:400">(facoltativo · max 5 MB)</span></label>
-              <div class="file-drop" id="file-drop" onclick="document.getElementById('file-inp').click()"
+              <label class="lbl">📄 Modulo compilato <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
+              <div class="file-drop" id="file-drop-modulo" onclick="document.getElementById('file-inp-modulo').click()"
                 ondragover="event.preventDefault();this.classList.add('drag')"
                 ondragleave="this.classList.remove('drag')"
-                ondrop="handleFileDrop(event)">
-                <input type="file" id="file-inp" style="display:none" accept=".docx,.pdf,.doc" onchange="handleFileSelect(event)">
-                <div id="file-label">
+                ondrop="handleMultiDrop(event,'modulo')">
+                <input type="file" id="file-inp-modulo" style="display:none" accept=".docx,.pdf,.doc" onchange="handleMultiSelect(event,'modulo')">
+                <div id="file-label-modulo">
                   <div class="file-drop-icon">📎</div>
                   <div class="file-drop-text">Trascina il file qui o clicca per selezionarlo</div>
-                  <div class="file-drop-hint">.docx · .pdf · max 5 MB</div>
+                  <div class="file-drop-hint">.docx · .pdf · .doc · max 5 MB</div>
                 </div>
               </div>
             </div>
+
+            <div class="form-row">
+              <label class="lbl">🪪 Documento d'identità <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
+              <div class="file-drop" id="file-drop-documento" onclick="document.getElementById('file-inp-documento').click()"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="handleMultiDrop(event,'documento')">
+                <input type="file" id="file-inp-documento" style="display:none" accept=".jpg,.jpeg,.png,.pdf" onchange="handleMultiSelect(event,'documento')">
+                <div id="file-label-documento">
+                  <div class="file-drop-icon">📎</div>
+                  <div class="file-drop-text">Trascina il file qui o clicca per selezionarlo</div>
+                  <div class="file-drop-hint">.jpg · .jpeg · .png · .pdf · max 5 MB</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="lbl">🏥 Certificato medico <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
+              <div class="file-drop" id="file-drop-certificato" onclick="document.getElementById('file-inp-certificato').click()"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="handleMultiDrop(event,'certificato')">
+                <input type="file" id="file-inp-certificato" style="display:none" accept=".jpg,.jpeg,.png,.pdf" onchange="handleMultiSelect(event,'certificato')">
+                <div id="file-label-certificato">
+                  <div class="file-drop-icon">📎</div>
+                  <div class="file-drop-text">Trascina il file qui o clicca per selezionarlo</div>
+                  <div class="file-drop-hint">.jpg · .jpeg · .png · .pdf · max 5 MB</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="file-summary" style="font-size:14px;color:var(--gray);margin-bottom:14px;font-weight:600"></div>
+
             <button class="btn btn-full" id="submit-btn" onclick="submitForm('${cat.id}')">
               📤 Invia iscrizione
             </button>
@@ -566,7 +599,9 @@ function renderSubDetail() {
       </div>
       ${s.note ? `<div class="detail-note"><div class="detail-key">Note</div><div style="font-size:14px;line-height:1.6;margin-top:4px">${s.note}</div></div>` : ''}
       <div class="detail-actions">
-        ${s.file_path ? `<button class="btn" onclick="downloadSubFile('${s.id}')">⬇ Scarica allegato — ${s.file_name||'file'}</button>` : ''}
+        ${s.file_path ? `<button class="btn" onclick="downloadSubFile('${s.id}','file_path','file_name')">📄 Scarica modulo — ${s.file_name||'file'}</button>` : ''}
+        ${s.doc_path ? `<button class="btn" onclick="downloadSubFile('${s.id}','doc_path','doc_name')">🪪 Scarica documento — ${s.doc_name||'file'}</button>` : ''}
+        ${s.cert_path ? `<button class="btn" onclick="downloadSubFile('${s.id}','cert_path','cert_name')">🏥 Scarica certificato — ${s.cert_name||'file'}</button>` : ''}
         <button class="btn-danger" onclick="deleteSub('${s.id}')">🗑 Elimina iscrizione</button>
       </div>
     </div>`;
@@ -623,30 +658,38 @@ function render() {
 // ══════════════════════════════════════════════
 // FORM (public)
 // ══════════════════════════════════════════════
-let _pendingFile = null;
+const _pendingFiles = { modulo: null, documento: null, certificato: null };
 let _pendingAssetMeta = null; // {catId, kind}
 
-function handleFileSelect(e) {
+function handleMultiSelect(e, key) {
   const f = e.target.files[0];
-  if (f) { _pendingFile = f; updateFileLabel(f); }
+  if (f) { _pendingFiles[key] = f; updateMultiLabel(key, f); updateFileSummary(); }
 }
-function handleFileDrop(e) {
+function handleMultiDrop(e, key) {
   e.preventDefault();
-  document.getElementById('file-drop')?.classList.remove('drag');
+  document.getElementById('file-drop-' + key)?.classList.remove('drag');
   const f = e.dataTransfer.files[0];
-  if (f) { _pendingFile = f; updateFileLabel(f); }
+  if (f) { _pendingFiles[key] = f; updateMultiLabel(key, f); updateFileSummary(); }
 }
-function updateFileLabel(f) {
-  const el = document.getElementById('file-label');
+function updateMultiLabel(key, f) {
+  const el = document.getElementById('file-label-' + key);
   if (el) el.innerHTML = `<div class="file-name">✅ ${f.name}</div><div class="file-meta">${fmtSize(f.size)} · Clicca per cambiare</div>`;
+}
+function updateFileSummary() {
+  const count = Object.values(_pendingFiles).filter(Boolean).length;
+  const el = document.getElementById('file-summary');
+  if (el) el.innerHTML = count > 0 ? `📎 Hai allegato <strong>${count}</strong> file su <strong>3</strong>` : '';
 }
 
 async function submitForm(catId) {
   const errEl = document.getElementById('form-err');
+  const keys = ['modulo','documento','certificato'];
 
-  if (_pendingFile && _pendingFile.size > 5*1024*1024) {
-    errEl.innerHTML = `<div class="alert alert-err">⚠ Il file è troppo grande (max 5 MB).</div>`;
-    return;
+  for (const key of keys) {
+    if (_pendingFiles[key] && _pendingFiles[key].size > 5*1024*1024) {
+      errEl.innerHTML = `<div class="alert alert-err">⚠ Il file "${_pendingFiles[key].name}" è troppo grande (max 5 MB).</div>`;
+      return;
+    }
   }
   errEl.innerHTML = '';
   const btn = document.getElementById('submit-btn');
@@ -654,22 +697,30 @@ async function submitForm(catId) {
   if (btn) btn.disabled = true;
 
   try {
-    let filePath = null, fileName = null;
-    if (_pendingFile) {
-      const ext = _pendingFile.name.split('.').pop();
-      filePath = `${catId}/${Date.now()}.${ext}`;
-      const { error: upErr } = await db.storage.from('submission-files').upload(filePath, _pendingFile);
-      if (upErr) throw upErr;
-      fileName = _pendingFile.name;
+    const ts = Date.now();
+    const uploaded = {};
+    for (const key of keys) {
+      const f = _pendingFiles[key];
+      if (f) {
+        const ext = f.name.split('.').pop();
+        const path = `${catId}/${ts}_${key}.${ext}`;
+        const { error: upErr } = await db.storage.from('submission-files').upload(path, f);
+        if (upErr) throw upErr;
+        uploaded[key] = { path, name: f.name };
+      }
     }
     const { error } = await db.from('submissions').insert({
       category_id: catId,
       category_name: catById(catId)?.name || catId,
-      file_path: filePath,
-      file_name: fileName,
+      file_path: uploaded.modulo?.path || null,
+      file_name: uploaded.modulo?.name || null,
+      doc_path: uploaded.documento?.path || null,
+      doc_name: uploaded.documento?.name || null,
+      cert_path: uploaded.certificato?.path || null,
+      cert_name: uploaded.certificato?.name || null,
     });
     if (error) throw error;
-    _pendingFile = null;
+    _pendingFiles.modulo = null; _pendingFiles.documento = null; _pendingFiles.certificato = null;
     set({ formSuccess: true });
     toast('Iscrizione inviata con successo!', 'ok');
   } catch (e) {
@@ -717,22 +768,25 @@ async function refreshSubs() {
   render();
 }
 
-async function downloadSubFile(subId) {
+async function downloadSubFile(subId, pathKey, nameKey) {
+  pathKey = pathKey || 'file_path';
+  nameKey = nameKey || 'file_name';
   const s = state.submissions.find(x => x.id === subId);
-  if (!s?.file_path) return;
-  const { data, error } = await db.storage.from('submission-files').createSignedUrl(s.file_path, 120);
+  if (!s?.[pathKey]) return;
+  const { data, error } = await db.storage.from('submission-files').createSignedUrl(s[pathKey], 120);
   if (error) { toast('Errore nel download', 'err'); return; }
   const a = document.createElement('a');
   a.href = data.signedUrl;
-  a.download = s.file_name || 'allegato';
+  a.download = s[nameKey] || 'allegato';
   a.click();
 }
 
 async function deleteSub(subId) {
   if (!confirm('Eliminare questa iscrizione? L\'operazione non è reversibile.')) return;
   const s = state.submissions.find(x => x.id === subId);
-  if (s?.file_path) {
-    await db.storage.from('submission-files').remove([s.file_path]);
+  const filesToRemove = [s?.file_path, s?.doc_path, s?.cert_path].filter(Boolean);
+  if (filesToRemove.length) {
+    await db.storage.from('submission-files').remove(filesToRemove);
   }
   const { error } = await db.from('submissions').delete().eq('id', subId);
   if (error) { toast('Errore eliminazione', 'err'); return; }
