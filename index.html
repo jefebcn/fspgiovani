@@ -64,6 +64,26 @@ nav.nav-hidden{transform:translateY(-100%)}
 .photo-slot img{width:100%;height:100%;object-fit:cover}
 .photo-ph{color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px;line-height:1.6}
 
+/* CAROUSEL */
+.carousel{position:relative;max-width:760px;margin:0 auto;outline:none}
+.carousel-viewport{overflow:hidden;border-radius:12px;border:2px solid rgba(244,124,32,.25);aspect-ratio:16/9;background:var(--navy-l);cursor:grab;user-select:none;-webkit-user-select:none}
+.carousel-viewport.dragging{cursor:grabbing}
+.carousel-track{display:flex;height:100%;transition:transform .4s ease}
+.carousel-track.no-anim{transition:none}
+.carousel-slide{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center}
+.carousel-slide img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(13,31,60,.7);color:#fff;border:none;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s}
+.carousel-btn:hover{background:rgba(244,124,32,.9)}
+.carousel-btn:disabled{opacity:.3;cursor:not-allowed}
+.carousel-btn-prev{left:10px}
+.carousel-btn-next{right:10px}
+.carousel-dots{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.carousel-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3);border:none;cursor:pointer;padding:0;transition:background .2s,transform .2s}
+.carousel-dot.active{background:var(--orange);transform:scale(1.25)}
+@media(max-width:480px){
+  .carousel-btn{width:36px;height:36px;font-size:17px}
+}
+
 /* SECTION */
 .section{max-width:980px;margin:0 auto;padding:52px 24px}
 .section-title{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;color:var(--navy);margin-bottom:6px}
@@ -333,6 +353,99 @@ function toggleMobileMenu() {
 // ══════════════════════════════════════════════
 // HOME
 // ══════════════════════════════════════════════
+let _carouselIdx = 0;
+let _carouselDrag = null;
+
+function getHeroPhotos() {
+  const out = [];
+  for (let n = 1; n <= 8; n++) {
+    const a = state.assets['__hero'+n];
+    if (a?.flyer_url) out.push(a.flyer_url);
+  }
+  return out;
+}
+
+function renderCarousel() {
+  const photos = getHeroPhotos();
+  if (!photos.length) {
+    return `<div class="photos-row">
+      <div class="photo-slot"><div class="photo-ph">📸<br>Nessuna foto<br><small>Carica dall'admin</small></div></div>
+    </div>`;
+  }
+  if (_carouselIdx >= photos.length) _carouselIdx = 0;
+  const slides = photos.map((u, i) => `<div class="carousel-slide"><img src="${u}" alt="foto ${i+1}" draggable="false"></div>`).join('');
+  const dots = photos.map((_, i) => `<button class="carousel-dot${i===_carouselIdx?' active':''}" onclick="goCarousel(${i})" aria-label="Vai alla foto ${i+1}"></button>`).join('');
+  return `
+    <div class="carousel" id="carousel" tabindex="0">
+      <div class="carousel-viewport" id="carousel-viewport">
+        <div class="carousel-track" id="carousel-track" style="transform:translateX(-${_carouselIdx*100}%)">
+          ${slides}
+        </div>
+      </div>
+      ${photos.length > 1 ? `
+        <button class="carousel-btn carousel-btn-prev" onclick="prevCarousel()" aria-label="Precedente">‹</button>
+        <button class="carousel-btn carousel-btn-next" onclick="nextCarousel()" aria-label="Successiva">›</button>
+        <div class="carousel-dots">${dots}</div>
+      ` : ''}
+    </div>`;
+}
+
+function goCarousel(i) {
+  const photos = getHeroPhotos();
+  if (!photos.length) return;
+  _carouselIdx = (i + photos.length) % photos.length;
+  updateCarousel();
+}
+function nextCarousel() { goCarousel(_carouselIdx + 1); }
+function prevCarousel() { goCarousel(_carouselIdx - 1); }
+
+function updateCarousel() {
+  const track = document.getElementById('carousel-track');
+  if (track) {
+    track.classList.remove('no-anim');
+    track.style.transform = `translateX(-${_carouselIdx*100}%)`;
+  }
+  document.querySelectorAll('.carousel-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === _carouselIdx);
+  });
+}
+
+function initCarousel() {
+  const car = document.getElementById('carousel');
+  const vp = document.getElementById('carousel-viewport');
+  const track = document.getElementById('carousel-track');
+  if (!car || !vp || !track) return;
+  car.focus({preventScroll:true});
+  car.onkeydown = (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevCarousel(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); nextCarousel(); }
+  };
+  const start = (x) => { _carouselDrag = { x, startIdx: _carouselIdx, width: vp.offsetWidth }; vp.classList.add('dragging'); track.classList.add('no-anim'); };
+  const move = (x) => {
+    if (!_carouselDrag) return;
+    const dx = x - _carouselDrag.x;
+    const pct = (dx / _carouselDrag.width) * 100;
+    track.style.transform = `translateX(calc(-${_carouselDrag.startIdx*100}% + ${pct}%))`;
+  };
+  const end = (x) => {
+    if (!_carouselDrag) return;
+    const dx = x - _carouselDrag.x;
+    const threshold = _carouselDrag.width * 0.15;
+    vp.classList.remove('dragging');
+    track.classList.remove('no-anim');
+    if (dx < -threshold) nextCarousel();
+    else if (dx > threshold) prevCarousel();
+    else updateCarousel();
+    _carouselDrag = null;
+  };
+  vp.onmousedown = (e) => { e.preventDefault(); start(e.clientX); };
+  window.onmousemove = (e) => { if (_carouselDrag) move(e.clientX); };
+  window.onmouseup = (e) => { if (_carouselDrag) end(e.clientX); };
+  vp.ontouchstart = (e) => start(e.touches[0].clientX);
+  vp.ontouchmove = (e) => move(e.touches[0].clientX);
+  vp.ontouchend = (e) => end(e.changedTouches[0].clientX);
+}
+
 function renderHome() {
   return `
   <div class="hero">
@@ -341,18 +454,7 @@ function renderHome() {
       <div class="hero-kicker">Federazione Basket · San Marino</div>
       <h1 class="hero-title">Basket<br>per i Più Piccoli</h1>
       <p class="hero-desc">Esplora tutte le attività dedicate ai giovani atleti. Clicca su una categoria per trovare il volantino e il modulo di iscrizione.</p>
-      <div class="photos-row">
-        <div class="photo-slot">
-          ${state.assets['__hero1']?.flyer_url
-            ? `<img src="${state.assets['__hero1'].flyer_url}" alt="foto 1">`
-            : `<div class="photo-ph">📸<br>Foto 1<br><small>Carica dall'admin</small></div>`}
-        </div>
-        <div class="photo-slot">
-          ${state.assets['__hero2']?.flyer_url
-            ? `<img src="${state.assets['__hero2'].flyer_url}" alt="foto 2">`
-            : `<div class="photo-ph">📸<br>Foto 2<br><small>Carica dall'admin</small></div>`}
-        </div>
-      </div>
+      ${renderCarousel()}
     </div>
   </div>
   <div class="section">
@@ -653,36 +755,28 @@ function renderSubDetail() {
 }
 
 function renderContentTab() {
-  const h1 = state.assets['__hero1'] || {};
-  const h2 = state.assets['__hero2'] || {};
+  const heroRows = [1,2,3,4,5,6,7,8].map(n => {
+    const h = state.assets['__hero'+n] || {};
+    return `
+      <div class="asset-row">
+        <div><div class="asset-cat">📸 Foto ${n}</div></div>
+        <div class="asset-slots">
+          <div class="asset-slot ${h.flyer_path?'asset-slot-ok':'asset-slot-miss'}">
+            ${h.flyer_path ? '✅' : '⬜'} Immagine
+            <button class="btn btn-sm" onclick="triggerAsset('__hero${n}','flyer')">
+              ${h.flyer_path ? 'Sostituisci' : 'Carica'}
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
   return `
     <div class="card" style="margin-bottom:22px">
       <div class="card-title">🖼 Foto home page</div>
       <p style="font-size:14px;color:var(--gray);margin-bottom:22px;line-height:1.6">
-        Carica le due foto che appaiono nella home sotto al titolo. Formato consigliato: PNG o JPG, orizzontale.
+        Carica fino a 8 foto che appariranno in un carousel nella home. Formato consigliato: PNG o JPG, orizzontale (16:9).
       </p>
-      <div class="asset-row">
-        <div><div class="asset-cat">📸 Foto 1</div></div>
-        <div class="asset-slots">
-          <div class="asset-slot ${h1.flyer_path?'asset-slot-ok':'asset-slot-miss'}">
-            ${h1.flyer_path ? '✅' : '⬜'} Immagine
-            <button class="btn btn-sm" onclick="triggerAsset('__hero1','flyer')">
-              ${h1.flyer_path ? 'Sostituisci' : 'Carica'}
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="asset-row">
-        <div><div class="asset-cat">📸 Foto 2</div></div>
-        <div class="asset-slots">
-          <div class="asset-slot ${h2.flyer_path?'asset-slot-ok':'asset-slot-miss'}">
-            ${h2.flyer_path ? '✅' : '⬜'} Immagine
-            <button class="btn btn-sm" onclick="triggerAsset('__hero2','flyer')">
-              ${h2.flyer_path ? 'Sostituisci' : 'Carica'}
-            </button>
-          </div>
-        </div>
-      </div>
+      ${heroRows}
     </div>
     <div class="card">
       <div class="card-title">📁 Gestione volantini e moduli</div>
@@ -722,7 +816,7 @@ function renderContentTab() {
 function render() {
   renderNav();
   const app = document.getElementById('app');
-  if (state.page === 'home') app.innerHTML = renderHome();
+  if (state.page === 'home') { app.innerHTML = renderHome(); initCarousel(); }
   else if (state.page === 'category') app.innerHTML = renderCategory();
   else if (state.page === 'admin') {
     if (!state.user) app.innerHTML = renderAdminLogin();
