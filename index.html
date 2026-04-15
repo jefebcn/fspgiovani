@@ -64,29 +64,30 @@ nav.nav-hidden{transform:translateY(-100%)}
 .photo-slot img{width:100%;height:100%;object-fit:cover}
 .photo-ph{color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px;line-height:1.6}
 
-/* GALLERY (Netflix-style) */
-.gallery{position:relative;width:100%;max-width:100%;margin:0 auto;padding:0;outline:none}
-.gallery-viewport{overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none;padding:0 20px}
+/* GALLERY (carousel with peek) */
+.gallery{position:relative;width:100%;max-width:1100px;margin:0 auto;padding:0 56px;outline:none;box-sizing:border-box}
+.gallery-viewport{overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none}
 .gallery-viewport.dragging{cursor:grabbing}
-.gallery-track{display:flex;gap:16px;transition:transform .45s cubic-bezier(.25,.8,.25,1)}
+.gallery-track{display:flex;transition:transform .5s cubic-bezier(.25,.8,.25,1);will-change:transform}
 .gallery-track.no-anim{transition:none}
-.gallery-item{flex:0 0 400px;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#0a1730;border:2px solid rgba(244,124,32,.25);transition:transform .2s;display:flex;align-items:center;justify-content:center}
-.gallery-item:hover{transform:scale(1.03)}
+.gallery-item{flex:0 0 75%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#0a1730;border:2px solid rgba(244,124,32,.25);display:flex;align-items:center;justify-content:center;margin:0 4px;box-sizing:border-box}
 .gallery-item img{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
-.gallery-item-empty{color:rgba(255,255,255,.22);font-size:34px}
-.gallery-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(13,31,60,.82);color:#fff;border:none;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s}
+.gallery-item-empty{color:rgba(255,255,255,.22);font-size:42px}
+.gallery-btn{position:absolute;top:calc(50% - 15px);transform:translateY(-50%);background:rgba(13,31,60,.82);color:#fff;border:none;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s}
 .gallery-btn:hover{background:rgba(244,124,32,.9)}
-.gallery-btn:disabled{opacity:.25;cursor:not-allowed}
 .gallery-btn-prev{left:4px}
 .gallery-btn-next{right:4px}
+.gallery-dots{display:flex;justify-content:center;gap:8px;margin-top:16px}
+.gallery-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3);border:none;cursor:pointer;padding:0;transition:background .2s,transform .2s}
+.gallery-dot.active{background:var(--orange);transform:scale(1.3)}
 @media(max-width:720px){
-  .gallery-viewport{padding:0 12px}
-  .gallery-item{flex:0 0 300px}
+  .gallery{padding:0 40px}
   .gallery-btn{width:38px;height:38px;font-size:20px}
 }
 @media(max-width:480px){
-  .gallery-viewport{padding:0 8px}
-  .gallery-item{flex:0 0 260px}
+  .gallery{padding:0 30px}
+  .gallery-item{flex:0 0 82%}
+  .gallery-btn{width:34px;height:34px;font-size:18px}
 }
 
 /* SECTION */
@@ -358,65 +359,87 @@ function toggleMobileMenu() {
 // ══════════════════════════════════════════════
 // HOME
 // ══════════════════════════════════════════════
-let _galleryOffset = 0;
-let _galleryDrag = null;
+const _CAROUSEL = { idx: 1, drag: null, animating: false, count: 8 };
 
 function renderCarousel() {
-  const items = [];
-  for (let n = 1; n <= 8; n++) {
+  const N = _CAROUSEL.count;
+  const raw = [];
+  for (let n = 1; n <= N; n++) {
     const a = state.assets['__hero'+n];
-    if (a?.flyer_url) {
-      items.push(`<div class="gallery-item"><img src="${a.flyer_url}" alt="foto ${n}" draggable="false"></div>`);
-    } else {
-      items.push(`<div class="gallery-item"><span class="gallery-item-empty">📷</span></div>`);
-    }
+    raw.push(a?.flyer_url || null);
   }
+  const slideHtml = (u, n) => u
+    ? `<div class="gallery-item"><img src="${u}" alt="foto ${n}" draggable="false"></div>`
+    : `<div class="gallery-item"><span class="gallery-item-empty">📷</span></div>`;
+  // clones: last at start, first at end (infinite loop)
+  const slides = [slideHtml(raw[N-1], N), ...raw.map((u,i)=>slideHtml(u,i+1)), slideHtml(raw[0], 1)].join('');
+  const realIdx = ((_CAROUSEL.idx - 1) + N) % N;
+  const dots = raw.map((_, i) =>
+    `<button class="gallery-dot${i===realIdx?' active':''}" onclick="goSlide(${i+1})" aria-label="Vai alla foto ${i+1}"></button>`
+  ).join('');
   return `
     <div class="gallery" id="gallery" tabindex="0">
-      <button class="gallery-btn gallery-btn-prev" onclick="scrollGallery(-1)" aria-label="Precedente">‹</button>
+      <button class="gallery-btn gallery-btn-prev" onclick="prevSlide()" aria-label="Precedente">‹</button>
       <div class="gallery-viewport" id="gallery-viewport">
         <div class="gallery-track" id="gallery-track">
-          ${items.join('')}
+          ${slides}
         </div>
       </div>
-      <button class="gallery-btn gallery-btn-next" onclick="scrollGallery(1)" aria-label="Successiva">›</button>
+      <button class="gallery-btn gallery-btn-next" onclick="nextSlide()" aria-label="Successiva">›</button>
+      <div class="gallery-dots">${dots}</div>
     </div>`;
 }
 
-function galleryStep() {
-  const track = document.getElementById('gallery-track');
-  if (!track) return 0;
-  const item = track.querySelector('.gallery-item');
-  if (!item) return 0;
-  const style = getComputedStyle(track);
-  const gap = parseFloat(style.gap) || 14;
-  return item.offsetWidth + gap;
-}
-
-function galleryMaxOffset() {
-  const vp = document.getElementById('gallery-viewport');
-  const track = document.getElementById('gallery-track');
-  if (!vp || !track) return 0;
-  return Math.max(0, track.scrollWidth - vp.offsetWidth);
-}
-
-function clampOffset(x) {
-  return Math.max(0, Math.min(x, galleryMaxOffset()));
-}
-
-function applyGalleryOffset(anim) {
+function setSlide(i, anim) {
   const track = document.getElementById('gallery-track');
   if (!track) return;
+  _CAROUSEL.idx = i;
   track.classList.toggle('no-anim', !anim);
-  track.style.transform = `translateX(-${_galleryOffset}px)`;
+  // each slide is 75% wide + 8px margin (4px each side). Center: half the 25% free = 12.5%
+  track.style.transform = `translateX(calc(-${i*75}% + 12.5% - ${i*8}px))`;
 }
 
-function scrollGallery(dir) {
-  const vp = document.getElementById('gallery-viewport');
-  if (!vp) return;
-  const step = Math.max(galleryStep(), vp.offsetWidth * 0.6);
-  _galleryOffset = clampOffset(_galleryOffset + dir * step);
-  applyGalleryOffset(true);
+function updateDots() {
+  const N = _CAROUSEL.count;
+  const real = ((_CAROUSEL.idx - 1) + N) % N;
+  document.querySelectorAll('.gallery-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === real);
+  });
+}
+
+function afterTransition(cb) {
+  const track = document.getElementById('gallery-track');
+  if (!track) return;
+  const handler = () => { track.removeEventListener('transitionend', handler); cb(); };
+  track.addEventListener('transitionend', handler);
+}
+
+function nextSlide() {
+  if (_CAROUSEL.animating) return;
+  _CAROUSEL.animating = true;
+  setSlide(_CAROUSEL.idx + 1, true);
+  updateDots();
+  afterTransition(() => {
+    if (_CAROUSEL.idx > _CAROUSEL.count) setSlide(1, false);
+    _CAROUSEL.animating = false;
+  });
+}
+
+function prevSlide() {
+  if (_CAROUSEL.animating) return;
+  _CAROUSEL.animating = true;
+  setSlide(_CAROUSEL.idx - 1, true);
+  updateDots();
+  afterTransition(() => {
+    if (_CAROUSEL.idx < 1) setSlide(_CAROUSEL.count, false);
+    _CAROUSEL.animating = false;
+  });
+}
+
+function goSlide(realI) {
+  if (_CAROUSEL.animating) return;
+  setSlide(realI, true);
+  updateDots();
 }
 
 function initCarousel() {
@@ -424,33 +447,43 @@ function initCarousel() {
   const vp = document.getElementById('gallery-viewport');
   const track = document.getElementById('gallery-track');
   if (!gal || !vp || !track) return;
-  _galleryOffset = clampOffset(_galleryOffset);
-  applyGalleryOffset(false);
-  requestAnimationFrame(() => applyGalleryOffset(false));
+  // ensure position is correct (no anim on first render)
+  setSlide(_CAROUSEL.idx, false);
+  requestAnimationFrame(() => setSlide(_CAROUSEL.idx, false));
+
   gal.onkeydown = (e) => {
-    if (e.key === 'ArrowLeft') { e.preventDefault(); scrollGallery(-1); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); scrollGallery(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); nextSlide(); }
   };
-  const start = (x) => { _galleryDrag = { x, startOffset: _galleryOffset }; vp.classList.add('dragging'); track.classList.add('no-anim'); };
+
+  const start = (x) => {
+    if (_CAROUSEL.animating) return;
+    _CAROUSEL.drag = { x, startIdx: _CAROUSEL.idx, width: vp.offsetWidth };
+    vp.classList.add('dragging');
+    track.classList.add('no-anim');
+  };
   const move = (x) => {
-    if (!_galleryDrag) return;
-    const dx = x - _galleryDrag.x;
-    _galleryOffset = clampOffset(_galleryDrag.startOffset - dx);
-    track.style.transform = `translateX(-${_galleryOffset}px)`;
+    if (!_CAROUSEL.drag) return;
+    const dx = x - _CAROUSEL.drag.x;
+    const pct = (dx / _CAROUSEL.drag.width) * 100;
+    track.style.transform = `translateX(calc(-${_CAROUSEL.drag.startIdx*75}% + 12.5% - ${_CAROUSEL.drag.startIdx*8}px + ${pct}%))`;
   };
-  const end = () => {
-    if (!_galleryDrag) return;
+  const end = (x) => {
+    if (!_CAROUSEL.drag) return;
+    const dx = x - _CAROUSEL.drag.x;
+    const threshold = _CAROUSEL.drag.width * 0.15;
     vp.classList.remove('dragging');
-    applyGalleryOffset(true);
-    _galleryDrag = null;
+    _CAROUSEL.drag = null;
+    if (dx < -threshold) nextSlide();
+    else if (dx > threshold) prevSlide();
+    else setSlide(_CAROUSEL.idx, true);
   };
   vp.onmousedown = (e) => { e.preventDefault(); start(e.clientX); };
-  window.onmousemove = (e) => { if (_galleryDrag) move(e.clientX); };
-  window.onmouseup = () => { if (_galleryDrag) end(); };
+  window.onmousemove = (e) => { if (_CAROUSEL.drag) move(e.clientX); };
+  window.onmouseup = (e) => { if (_CAROUSEL.drag) end(e.clientX); };
   vp.ontouchstart = (e) => start(e.touches[0].clientX);
   vp.ontouchmove = (e) => move(e.touches[0].clientX);
-  vp.ontouchend = () => end();
-  window.addEventListener('resize', () => { _galleryOffset = clampOffset(_galleryOffset); applyGalleryOffset(false); }, { once:true });
+  vp.ontouchend = (e) => end(e.changedTouches[0].clientX);
 }
 
 function renderHome() {
