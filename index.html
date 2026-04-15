@@ -467,7 +467,7 @@ function renderCarousel() {
     raw.push(a?.flyer_url || null);
   }
   const slideHtml = (u, n) => u
-    ? `<div class="gallery-item gallery-item-clickable" onclick="handleSlideClick(${n})"><img src="${u}" alt="foto ${n}" draggable="false"></div>`
+    ? `<div class="gallery-item gallery-item-clickable" onclick="handleSlideClick(${n})"><img src="${u}" alt="foto ${n}" draggable="false" loading="eager" decoding="async"></div>`
     : `<div class="gallery-item"><span class="gallery-item-empty">📷</span></div>`;
   // clones: last at start, first at end (infinite loop)
   const slides = [slideHtml(raw[N-1], N), ...raw.map((u,i)=>slideHtml(u,i+1)), slideHtml(raw[0], 1)].join('');
@@ -1180,6 +1180,20 @@ async function loadAssets() {
         const { data: urlData } = db.storage.from('category-assets').getPublicUrl(row.flyer_path);
         state.assets[row.category_id].flyer_url = urlData?.publicUrl;
       }
+    }
+  }
+  preloadHeroPhotos();
+}
+
+function preloadHeroPhotos() {
+  window._heroPreload = window._heroPreload || {};
+  for (let n = 1; n <= 8; n++) {
+    const url = state.assets['__hero'+n]?.flyer_url;
+    if (url && !window._heroPreload[url]) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      window._heroPreload[url] = img;
     }
   }
 }
