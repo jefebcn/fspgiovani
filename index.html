@@ -653,7 +653,37 @@ function renderSubDetail() {
 }
 
 function renderContentTab() {
+  const h1 = state.assets['__hero1'] || {};
+  const h2 = state.assets['__hero2'] || {};
   return `
+    <div class="card" style="margin-bottom:22px">
+      <div class="card-title">🖼 Foto home page</div>
+      <p style="font-size:14px;color:var(--gray);margin-bottom:22px;line-height:1.6">
+        Carica le due foto che appaiono nella home sotto al titolo. Formato consigliato: PNG o JPG, orizzontale.
+      </p>
+      <div class="asset-row">
+        <div><div class="asset-cat">📸 Foto 1</div></div>
+        <div class="asset-slots">
+          <div class="asset-slot ${h1.flyer_path?'asset-slot-ok':'asset-slot-miss'}">
+            ${h1.flyer_path ? '✅' : '⬜'} Immagine
+            <button class="btn btn-sm" onclick="triggerAsset('__hero1','flyer')">
+              ${h1.flyer_path ? 'Sostituisci' : 'Carica'}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="asset-row">
+        <div><div class="asset-cat">📸 Foto 2</div></div>
+        <div class="asset-slots">
+          <div class="asset-slot ${h2.flyer_path?'asset-slot-ok':'asset-slot-miss'}">
+            ${h2.flyer_path ? '✅' : '⬜'} Immagine
+            <button class="btn btn-sm" onclick="triggerAsset('__hero2','flyer')">
+              ${h2.flyer_path ? 'Sostituisci' : 'Carica'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="card">
       <div class="card-title">📁 Gestione volantini e moduli</div>
       <p style="font-size:14px;color:var(--gray);margin-bottom:22px;line-height:1.6">
