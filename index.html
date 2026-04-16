@@ -68,7 +68,7 @@ nav.nav-hidden{transform:translateY(-100%)}
 .gallery{position:relative;width:100%;max-width:1200px;margin:0 auto;padding:0 60px;outline:none;box-sizing:border-box}
 .gallery-viewport{overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none}
 .gallery-viewport.dragging{cursor:grabbing}
-.gallery-track{display:flex;transition:transform .5s cubic-bezier(.25,.8,.25,1);will-change:transform}
+.gallery-track{display:flex;transition:transform .65s cubic-bezier(.4,0,.2,1);will-change:transform}
 .gallery-track.no-anim{transition:none}
 .gallery-item{flex:0 0 43%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0a1730;border:2px solid rgba(244,124,32,.25);display:flex;align-items:center;justify-content:center;margin:0 6px;box-sizing:border-box;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .gallery-item img{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
@@ -529,27 +529,26 @@ function afterTransition(cb) {
   track.addEventListener('transitionend', handler);
 }
 
-function nextSlide() {
-  if (_CAROUSEL.animating) return;
+function goByDelta(delta) {
+  const N = _CAROUSEL.count;
+  if (_CAROUSEL.animating || delta === 0) return;
   _CAROUSEL.animating = true;
-  setSlide(_CAROUSEL.idx + 1, true);
+  // Clamp target to the DOM clone range [0, N+1] so we always animate
+  // to a slide that actually exists. Users can wrap further in another gesture.
+  let target = _CAROUSEL.idx + delta;
+  if (target < 0) target = 0;
+  else if (target > N + 1) target = N + 1;
+  setSlide(target, true);
   updateDots();
   afterTransition(() => {
-    if (_CAROUSEL.idx > _CAROUSEL.count) setSlide(1, false);
+    if (_CAROUSEL.idx > N) setSlide(1, false);
+    else if (_CAROUSEL.idx < 1) setSlide(N, false);
     _CAROUSEL.animating = false;
   });
 }
 
-function prevSlide() {
-  if (_CAROUSEL.animating) return;
-  _CAROUSEL.animating = true;
-  setSlide(_CAROUSEL.idx - 1, true);
-  updateDots();
-  afterTransition(() => {
-    if (_CAROUSEL.idx < 1) setSlide(_CAROUSEL.count, false);
-    _CAROUSEL.animating = false;
-  });
-}
+function nextSlide() { goByDelta(1); }
+function prevSlide() { goByDelta(-1); }
 
 function goSlide(realI) {
   if (_CAROUSEL.animating) return;
@@ -591,11 +590,14 @@ function initCarousel() {
   const end = (x) => {
     if (!_CAROUSEL.drag) return;
     const dx = x - _CAROUSEL.drag.x;
-    const threshold = _CAROUSEL.drag.m.step * 0.2;
+    const step = _CAROUSEL.drag.m.step;
     vp.classList.remove('dragging');
     _CAROUSEL.drag = null;
-    if (dx < -threshold) nextSlide();
-    else if (dx > threshold) prevSlide();
+    // Compute how many slides the drag covered (negative dx = forward)
+    const delta = -Math.round(dx / step);
+    // Small residual drag still counts as a single nav if above 20% threshold
+    if (delta !== 0) goByDelta(delta);
+    else if (Math.abs(dx) > step * 0.2) goByDelta(dx < 0 ? 1 : -1);
     else setSlide(_CAROUSEL.idx, true);
   };
   vp.onmousedown = (e) => { e.preventDefault(); start(e.clientX); };
@@ -1341,6 +1343,11 @@ async function init() {
   await loadAssets();
   if (state.user) await refreshSubs();
   if (window.location.hash === '#admin') state.page = 'admin';
+  // If landing on home, wait for all hero photos to be blob-cached so
+  // the carousel is instant from the first cycle onwards.
+  if (state.page === 'home' && window._heroPreloadReady) {
+    try { await window._heroPreloadReady; } catch (e) {}
+  }
   render();
 }
 
