@@ -1226,34 +1226,56 @@ async function loadAssets() {
       }
     }
   }
-  // Start preloading but don't block — the carousel renders immediately
-  // and the remaining fetches run in parallel on the browser.
+  // Fetch all hero photos as blobs in parallel. preloadHeroPhotos swaps
+  // state.assets URLs to blob URLs and triggers a re-render of home when
+  // done, so the carousel <img> tags use the in-memory blobs (instant).
   preloadHeroPhotos();
 }
 
-function preloadHeroPhotos() {
-  // Array-based: one Image per hero slot so we force 8 parallel fetches
-  window._heroPreload = [];
+async function preloadHeroPhotos() {
+  // Cache of origUrl -> blob URL so we never re-fetch
+  window._heroBlobUrls = window._heroBlobUrls || {};
+  // Hold Image() refs to keep decoded bitmaps in memory
+  window._heroPreload = window._heroPreload || [];
   const promises = [];
   for (let n = 1; n <= 8; n++) {
-    const url = state.assets['__hero'+n]?.flyer_url;
-    if (!url) continue;
-    const img = new Image();
-    window._heroPreload.push(img);
-    const p = new Promise((resolve) => {
-      img.onload = () => {
-        // Force full decode so next display is instant (not just downloaded)
-        const done = () => { console.log('[preload] ready hero', n, url); resolve(); };
-        if (typeof img.decode === 'function') img.decode().then(done, done);
-        else done();
-      };
-      img.onerror = () => { console.warn('[preload] error hero', n, url); resolve(); };
-    });
-    img.src = url;
+    const slot = n;
+    const a = state.assets['__hero'+slot];
+    const origUrl = a?.flyer_url;
+    if (!origUrl) continue;
+    // If already preloaded, swap state to the cached blob and move on
+    const cached = window._heroBlobUrls[origUrl];
+    if (cached) {
+      if (a.flyer_url !== cached) a.flyer_url = cached;
+      continue;
+    }
+    const p = fetch(origUrl)
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+      .then(blob => new Promise((resolve) => {
+        const blobUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          const done = () => {
+            window._heroBlobUrls[origUrl] = blobUrl;
+            window._heroPreload.push(img);
+            const cur = state.assets['__hero'+slot];
+            if (cur && cur.flyer_url === origUrl) cur.flyer_url = blobUrl;
+            console.log('[preload] hero', slot, 'cached as blob');
+            resolve();
+          };
+          if (typeof img.decode === 'function') img.decode().then(done, done);
+          else done();
+        };
+        img.onerror = () => { console.warn('[preload] decode error hero', slot); resolve(); };
+        img.src = blobUrl;
+      }))
+      .catch(e => console.warn('[preload] fetch failed hero', slot, e));
     promises.push(p);
   }
   window._heroPreloadReady = Promise.all(promises).then(() => {
-    console.log('[preload] all hero photos ready:', promises.length);
+    console.log('[preload] all hero photos ready (blob cached):', promises.length);
+    // Re-render home so the <img> tags pick up the blob URLs
+    if (state.page === 'home') render();
   });
   return window._heroPreloadReady;
 }
