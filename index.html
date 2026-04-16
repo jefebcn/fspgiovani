@@ -70,9 +70,13 @@ nav.nav-hidden{transform:translateY(-100%)}
 .gallery-viewport.dragging{cursor:grabbing}
 .gallery-track{display:flex;transition:transform .65s cubic-bezier(.4,0,.2,1);will-change:transform}
 .gallery-track.no-anim{transition:none}
-.gallery-item{flex:0 0 43%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0a1730;border:2px solid rgba(244,124,32,.25);display:flex;align-items:center;justify-content:center;margin:0 6px;box-sizing:border-box;box-shadow:0 8px 24px rgba(0,0,0,.3)}
-.gallery-item img{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
+.gallery-item{flex:0 0 43%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0a1730;border:2px solid rgba(244,124,32,.25);display:flex;align-items:center;justify-content:center;margin:0 6px;box-sizing:border-box;box-shadow:0 8px 24px rgba(0,0,0,.3);position:relative}
+.gallery-item img{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block;opacity:0;transition:opacity .3s ease}
+.gallery-item.loaded img{opacity:1}
 .gallery-item-empty{color:rgba(255,255,255,.22);font-size:48px}
+.gallery-item-placeholder{position:absolute;inset:0;background:linear-gradient(90deg,#0a1730 0%,#1a3560 50%,#0a1730 100%);background-size:200% 100%;animation:gallery-shimmer 1.4s linear infinite;pointer-events:none;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:28px}
+.gallery-item.loaded .gallery-item-placeholder{display:none}
+@keyframes gallery-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .gallery-btn{position:absolute;top:calc(50% - 10px);transform:translateY(-50%);background:rgba(13,31,60,.82);color:#fff;border:none;width:46px;height:46px;border-radius:50%;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s}
 .gallery-btn:hover{background:rgba(244,124,32,.9)}
 .gallery-btn-prev{left:4px}
@@ -467,7 +471,7 @@ function renderCarousel() {
     raw.push(a?.flyer_url || null);
   }
   const slideHtml = (u, n) => u
-    ? `<div class="gallery-item gallery-item-clickable" onclick="handleSlideClick(${n})"><img src="${u}" alt="foto ${n}" draggable="false" loading="eager" decoding="async"></div>`
+    ? `<div class="gallery-item gallery-item-clickable" onclick="handleSlideClick(${n})"><div class="gallery-item-placeholder">📷</div><img src="${u}" alt="foto ${n}" draggable="false" loading="eager" decoding="async" onload="this.parentElement.classList.add('loaded')" onerror="this.parentElement.classList.add('loaded')"></div>`
     : `<div class="gallery-item"><span class="gallery-item-empty">📷</span></div>`;
   // clones: last at start, first at end (infinite loop)
   const slides = [slideHtml(raw[N-1], N), ...raw.map((u,i)=>slideHtml(u,i+1)), slideHtml(raw[0], 1)].join('');
@@ -564,6 +568,11 @@ function initCarousel() {
   // ensure position is correct (no anim on first render)
   setSlide(_CAROUSEL.idx, false);
   requestAnimationFrame(() => setSlide(_CAROUSEL.idx, false));
+  // Images cached from <link rel=preload> fire 'load' before the handler
+  // attaches — mark any already-complete imgs as loaded immediately.
+  track.querySelectorAll('.gallery-item img').forEach((img) => {
+    if (img.complete && img.naturalWidth > 0) img.parentElement.classList.add('loaded');
+  });
 
   gal.onkeydown = (e) => {
     if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
@@ -1234,52 +1243,20 @@ async function loadAssets() {
   preloadHeroPhotos();
 }
 
-async function preloadHeroPhotos() {
-  // Cache of origUrl -> blob URL so we never re-fetch
-  window._heroBlobUrls = window._heroBlobUrls || {};
-  // Hold Image() refs to keep decoded bitmaps in memory
-  window._heroPreload = window._heroPreload || [];
-  const promises = [];
+function preloadHeroPhotos() {
+  // Remove any previous preload link tags (e.g. after an upload)
+  document.querySelectorAll('link[data-hero-preload]').forEach(l => l.remove());
   for (let n = 1; n <= 8; n++) {
-    const slot = n;
-    const a = state.assets['__hero'+slot];
-    const origUrl = a?.flyer_url;
-    if (!origUrl) continue;
-    // If already preloaded, swap state to the cached blob and move on
-    const cached = window._heroBlobUrls[origUrl];
-    if (cached) {
-      if (a.flyer_url !== cached) a.flyer_url = cached;
-      continue;
-    }
-    const p = fetch(origUrl)
-      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
-      .then(blob => new Promise((resolve) => {
-        const blobUrl = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = () => {
-          const done = () => {
-            window._heroBlobUrls[origUrl] = blobUrl;
-            window._heroPreload.push(img);
-            const cur = state.assets['__hero'+slot];
-            if (cur && cur.flyer_url === origUrl) cur.flyer_url = blobUrl;
-            console.log('[preload] hero', slot, 'cached as blob');
-            resolve();
-          };
-          if (typeof img.decode === 'function') img.decode().then(done, done);
-          else done();
-        };
-        img.onerror = () => { console.warn('[preload] decode error hero', slot); resolve(); };
-        img.src = blobUrl;
-      }))
-      .catch(e => console.warn('[preload] fetch failed hero', slot, e));
-    promises.push(p);
+    const url = state.assets['__hero'+n]?.flyer_url;
+    if (!url) continue;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = url;
+    link.setAttribute('data-hero-preload', '');
+    document.head.appendChild(link);
+    console.log('[preload] <link rel=preload> hero', n);
   }
-  window._heroPreloadReady = Promise.all(promises).then(() => {
-    console.log('[preload] all hero photos ready (blob cached):', promises.length);
-    // Re-render home so the <img> tags pick up the blob URLs
-    if (state.page === 'home') render();
-  });
-  return window._heroPreloadReady;
 }
 
 function triggerAsset(catId, kind) {
@@ -1343,11 +1320,6 @@ async function init() {
   await loadAssets();
   if (state.user) await refreshSubs();
   if (window.location.hash === '#admin') state.page = 'admin';
-  // If landing on home, wait for all hero photos to be blob-cached so
-  // the carousel is instant from the first cycle onwards.
-  if (state.page === 'home' && window._heroPreloadReady) {
-    try { await window._heroPreloadReady; } catch (e) {}
-  }
   render();
 }
 
