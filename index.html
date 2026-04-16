@@ -709,6 +709,22 @@ function renderCategory() {
 
             <div id="form-err"></div>
 
+            <div class="form-grid2">
+              <div class="form-row">
+                <label class="lbl">Nome del bambino <span class="req">*</span></label>
+                <input type="text" id="f-nome" placeholder="Marco" autocomplete="given-name">
+              </div>
+              <div class="form-row">
+                <label class="lbl">Cognome del bambino <span class="req">*</span></label>
+                <input type="text" id="f-cognome" placeholder="Rossi" autocomplete="family-name">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="lbl">Email genitore <span class="req">*</span></label>
+              <input type="email" id="f-email" placeholder="genitore@example.com" autocomplete="email">
+            </div>
+
             <div class="form-row">
               <label class="lbl">📄 Modulo compilato <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
               <div class="file-drop" id="file-drop-modulo" onclick="document.getElementById('file-inp-modulo').click()"
@@ -856,11 +872,14 @@ function renderSubsTab() {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Categoria</th><th>Data</th><th>Allegati</th><th></th>
+          <th>Nome</th><th>Cognome</th><th>Email genitore</th><th>Categoria</th><th>Data</th><th>Allegati</th><th></th>
         </tr></thead>
         <tbody>
           ${subs.map(s => `
           <tr onclick="set({selected:'${s.id}'})" style="cursor:pointer">
+            <td>${s.nome || '—'}</td>
+            <td>${s.cognome || '—'}</td>
+            <td style="color:var(--gray)">${s.email || '—'}</td>
             <td><span class="badge">${s.category_name}</span></td>
             <td style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
             <td>${s.file_path ? '📎 Sì' : '<span style="color:var(--gray)">No</span>'}</td>
@@ -879,6 +898,9 @@ function exportExcel() {
     const hasDoc = typeof fp === 'object' ? !!fp.documento : false;
     const hasCert = typeof fp === 'object' ? !!fp.certificato : false;
     return {
+      'Nome bambino': s.nome || '',
+      'Cognome bambino': s.cognome || '',
+      'Email genitore': s.email || '',
       'Categoria': s.category_name || '',
       'Data': fmtDate(s.created_at),
       'Modulo allegato': hasModulo ? 'Sì' : 'No',
@@ -887,7 +909,7 @@ function exportExcel() {
     };
   });
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:22},{wch:14},{wch:16},{wch:20},{wch:18}];
+  ws['!cols'] = [{wch:18},{wch:18},{wch:28},{wch:22},{wch:14},{wch:16},{wch:20},{wch:18}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Iscrizioni');
   XLSX.writeFile(wb, `iscrizioni_${state.filterCat || 'tutte'}_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -901,7 +923,7 @@ function renderSubDetail() {
     <div class="card">
       <div class="card-title" style="margin-bottom:20px">Dettaglio iscrizione</div>
       <div class="detail-grid">
-        ${[['Categoria',s.category_name],['Data invio',fmt(s.created_at)]
+        ${[['Nome bambino',s.nome||'—'],['Cognome bambino',s.cognome||'—'],['Email genitore',s.email||'—'],['Categoria',s.category_name],['Data invio',fmt(s.created_at)]
           ].map(([k,v])=>`
           <div class="detail-item">
             <div class="detail-key">${k}</div>
@@ -1029,6 +1051,18 @@ async function submitForm(catId) {
   const errEl = document.getElementById('form-err');
   const keys = ['modulo','documento','certificato'];
 
+  const nome = document.getElementById('f-nome')?.value.trim();
+  const cognome = document.getElementById('f-cognome')?.value.trim();
+  const email = document.getElementById('f-email')?.value.trim();
+  if (!nome || !cognome || !email) {
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Compila tutti i campi obbligatori (nome, cognome, email).</div>`;
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Inserisci un indirizzo email valido.</div>`;
+    return;
+  }
+
   for (const key of keys) {
     if (_pendingFiles[key] && _pendingFiles[key].size > 5*1024*1024) {
       errEl.innerHTML = `<div class="alert alert-err">⚠ Il file "${_pendingFiles[key].name}" è troppo grande (max 5 MB).</div>`;
@@ -1062,6 +1096,9 @@ async function submitForm(catId) {
     const insertData = {
       category_id: catId,
       category_name: catById(catId)?.name || catId,
+      nome,
+      cognome,
+      email,
       file_path: hasFiles ? JSON.stringify(paths) : null,
       file_name: hasFiles ? JSON.stringify(names) : null,
     };
