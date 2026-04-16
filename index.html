@@ -726,7 +726,7 @@ function renderCategory() {
             </div>
 
             <div class="form-row">
-              <label class="lbl">📄 Modulo compilato <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
+              <label class="lbl">📄 Modulo compilato <span class="req">*</span> <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
               <div class="file-drop" id="file-drop-modulo" onclick="document.getElementById('file-inp-modulo').click()"
                 ondragover="event.preventDefault();this.classList.add('drag')"
                 ondragleave="this.classList.remove('drag')"
@@ -741,7 +741,7 @@ function renderCategory() {
             </div>
 
             <div class="form-row">
-              <label class="lbl">🪪 Documento d'identità <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
+              <label class="lbl">🪪 Documento d'identità <span class="req">*</span> <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
               <div class="file-drop" id="file-drop-documento" onclick="document.getElementById('file-inp-documento').click()"
                 ondragover="event.preventDefault();this.classList.add('drag')"
                 ondragleave="this.classList.remove('drag')"
@@ -756,7 +756,7 @@ function renderCategory() {
             </div>
 
             <div class="form-row">
-              <label class="lbl">🏥 Certificato medico <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
+              <label class="lbl">🏥 Certificato medico <span class="req">*</span> <span style="color:var(--gray);font-weight:400">(max 5 MB)</span></label>
               <div class="file-drop" id="file-drop-certificato" onclick="document.getElementById('file-inp-certificato').click()"
                 ondragover="event.preventDefault();this.classList.add('drag')"
                 ondragleave="this.classList.remove('drag')"
@@ -1060,6 +1060,13 @@ async function submitForm(catId) {
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errEl.innerHTML = `<div class="alert alert-err">⚠ Inserisci un indirizzo email valido.</div>`;
+    return;
+  }
+
+  const labels = { modulo: 'Modulo compilato', documento: "Documento d'identità", certificato: 'Certificato medico' };
+  const missing = keys.filter(k => !_pendingFiles[k]).map(k => labels[k]);
+  if (missing.length) {
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Devi allegare tutti e 3 i file. Mancano: <strong>${missing.join(', ')}</strong>.</div>`;
     return;
   }
 
