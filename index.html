@@ -387,7 +387,7 @@ function toggleMobileMenu() {
 // ══════════════════════════════════════════════
 // HOME
 // ══════════════════════════════════════════════
-const _CAROUSEL = { idx: 1, drag: null, animating: false, count: 8 };
+const _CAROUSEL = { idx: 2, drag: null, animating: false, count: 8, leftClones: 2, rightClones: 2 };
 let _wasDragged = false;
 const _LIGHTBOX = { photos: [], idx: 0 };
 
@@ -465,6 +465,8 @@ document.addEventListener('keydown', (e) => {
 
 function renderCarousel() {
   const N = _CAROUSEL.count;
+  const LC = _CAROUSEL.leftClones;
+  const RC = _CAROUSEL.rightClones;
   const raw = [];
   for (let n = 1; n <= N; n++) {
     const a = state.assets['__hero'+n];
@@ -473,9 +475,15 @@ function renderCarousel() {
   const slideHtml = (u, n) => u
     ? `<div class="gallery-item gallery-item-clickable" onclick="handleSlideClick(${n})"><div class="gallery-item-placeholder">📷</div><img src="${u}" alt="foto ${n}" draggable="false" loading="eager" decoding="async" onload="this.parentElement.classList.add('loaded')" onerror="this.parentElement.classList.add('loaded')"></div>`
     : `<div class="gallery-item"><span class="gallery-item-empty">📷</span></div>`;
-  // clones: last at start, first at end (infinite loop)
-  const slides = [slideHtml(raw[N-1], N), ...raw.map((u,i)=>slideHtml(u,i+1)), slideHtml(raw[0], 1)].join('');
-  const realIdx = ((_CAROUSEL.idx - 1) + N) % N;
+  // Build: [left clones (LC of last items)] [real 1..N] [right clones (RC of first items)]
+  const parts = [];
+  for (let i = 0; i < LC; i++) {
+    const srcIdx = ((N - LC + i) % N + N) % N;
+    parts.push(slideHtml(raw[srcIdx], srcIdx + 1));
+  }
+  for (let i = 0; i < N; i++) parts.push(slideHtml(raw[i], i + 1));
+  for (let i = 0; i < RC; i++) parts.push(slideHtml(raw[i], i + 1));
+  const realIdx = ((_CAROUSEL.idx - LC) % N + N) % N;
   const dots = raw.map((_, i) =>
     `<button class="gallery-dot${i===realIdx?' active':''}" onclick="goSlide(${i+1})" aria-label="Vai alla foto ${i+1}"></button>`
   ).join('');
@@ -484,7 +492,7 @@ function renderCarousel() {
       <button class="gallery-btn gallery-btn-prev" onclick="prevSlide()" aria-label="Precedente">‹</button>
       <div class="gallery-viewport" id="gallery-viewport">
         <div class="gallery-track" id="gallery-track">
-          ${slides}
+          ${parts.join('')}
         </div>
       </div>
       <button class="gallery-btn gallery-btn-next" onclick="nextSlide()" aria-label="Successiva">›</button>
@@ -520,7 +528,8 @@ function setSlide(i, anim) {
 
 function updateDots() {
   const N = _CAROUSEL.count;
-  const real = ((_CAROUSEL.idx - 1) + N) % N;
+  const LC = _CAROUSEL.leftClones;
+  const real = ((_CAROUSEL.idx - LC) % N + N) % N;
   document.querySelectorAll('.gallery-dot').forEach((d, i) => {
     d.classList.toggle('active', i === real);
   });
@@ -535,18 +544,22 @@ function afterTransition(cb) {
 
 function goByDelta(delta) {
   const N = _CAROUSEL.count;
+  const LC = _CAROUSEL.leftClones;
+  const RC = _CAROUSEL.rightClones;
   if (_CAROUSEL.animating || delta === 0) return;
   _CAROUSEL.animating = true;
-  // Clamp target to the DOM clone range [0, N+1] so we always animate
-  // to a slide that actually exists. Users can wrap further in another gesture.
+  // Clamp target to the full DOM range [0, LC+N+RC-1] so the animation
+  // always lands on an existing slide. After the transition we silent-jump
+  // back into the real range [LC, LC+N-1] if we ended on a clone.
+  const maxIdx = LC + N + RC - 1;
   let target = _CAROUSEL.idx + delta;
   if (target < 0) target = 0;
-  else if (target > N + 1) target = N + 1;
+  else if (target > maxIdx) target = maxIdx;
   setSlide(target, true);
   updateDots();
   afterTransition(() => {
-    if (_CAROUSEL.idx > N) setSlide(1, false);
-    else if (_CAROUSEL.idx < 1) setSlide(N, false);
+    if (_CAROUSEL.idx < LC) setSlide(_CAROUSEL.idx + N, false);
+    else if (_CAROUSEL.idx >= LC + N) setSlide(_CAROUSEL.idx - N, false);
     _CAROUSEL.animating = false;
   });
 }
@@ -554,9 +567,10 @@ function goByDelta(delta) {
 function nextSlide() { goByDelta(1); }
 function prevSlide() { goByDelta(-1); }
 
-function goSlide(realI) {
+function goSlide(realN) {
   if (_CAROUSEL.animating) return;
-  setSlide(realI, true);
+  // realN is 1-based real photo index (1..N) from the dot buttons
+  setSlide(_CAROUSEL.leftClones + (realN - 1), true);
   updateDots();
 }
 
@@ -565,6 +579,10 @@ function initCarousel() {
   const vp = document.getElementById('gallery-viewport');
   const track = document.getElementById('gallery-track');
   if (!gal || !vp || !track) return;
+  // Keep idx inside the real range after a re-render or mount
+  const LC = _CAROUSEL.leftClones;
+  const N = _CAROUSEL.count;
+  if (_CAROUSEL.idx < LC || _CAROUSEL.idx >= LC + N) _CAROUSEL.idx = LC;
   // ensure position is correct (no anim on first render)
   setSlide(_CAROUSEL.idx, false);
   requestAnimationFrame(() => setSlide(_CAROUSEL.idx, false));
