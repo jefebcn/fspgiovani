@@ -388,6 +388,7 @@ function navigate(page, catId = null) {
   _pendingFiles.modulo = null;
   _pendingFiles.documento = null;
   _pendingFiles.certificato = null;
+  closeMobileMenu();
   const url = navUrl(page, catId);
   history.pushState({ page, catId }, '', url);
   set({ page, catId, formSuccess: false, selected: null });
@@ -403,15 +404,19 @@ function renderNav() {
   const adminLink = state.user ? `<span class="nav-link${state.page==='admin'?' active':''}" onclick="navigate('admin')">👑 Admin</span>` : '';
   wrap.innerHTML = adminLink + links;
   const mob = document.getElementById('mobile-menu');
-  const adminLinkMob = state.user ? `<span class="nav-link${state.page==='admin'?' active':''}" onclick="navigate('admin');toggleMobileMenu()">👑 Admin</span>` : '';
+  const adminLinkMob = state.user ? `<span class="nav-link${state.page==='admin'?' active':''}" onclick="navigate('admin')">👑 Admin</span>` : '';
   if (mob) mob.innerHTML = adminLinkMob + CATEGORIES.map(c =>
-    `<span class="nav-link${state.catId===c.id?' active':''}" onclick="navigate('category','${c.id}');toggleMobileMenu()">${c.name}</span>`
+    `<span class="nav-link${state.catId===c.id?' active':''}" onclick="navigate('category','${c.id}')">${c.name}</span>`
   ).join('');
 }
 
 function toggleMobileMenu() {
   document.getElementById('hamburger').classList.toggle('open');
   document.getElementById('mobile-menu').classList.toggle('open');
+}
+function closeMobileMenu() {
+  document.getElementById('hamburger')?.classList.remove('open');
+  document.getElementById('mobile-menu')?.classList.remove('open');
 }
 
 // ══════════════════════════════════════════════
