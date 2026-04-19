@@ -355,6 +355,10 @@ function catById(id) { return CATEGORIES.find(c => c.id === id); }
 function fmt(iso) { return new Date(iso).toLocaleString('it-IT'); }
 function fmtDate(iso) { return new Date(iso).toLocaleDateString('it-IT'); }
 function fmtSize(b) { return b > 1048576 ? (b/1048576).toFixed(1)+' MB' : Math.round(b/1024)+' KB'; }
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function toast(msg, type='') {
   const el = document.createElement('div');
@@ -367,6 +371,10 @@ function toast(msg, type='') {
 
 // ── NAVIGATION ──
 function navigate(page, catId = null) {
+  // Reset pending files so switching category doesn't carry files over
+  _pendingFiles.modulo = null;
+  _pendingFiles.documento = null;
+  _pendingFiles.certificato = null;
   set({ page, catId, formSuccess: false, selected: null });
   window.scrollTo(0, 0);
 }
@@ -551,9 +559,13 @@ function updateDots() {
 
 function afterTransition(cb) {
   const track = document.getElementById('gallery-track');
-  if (!track) return;
-  const handler = () => { track.removeEventListener('transitionend', handler); cb(); };
-  track.addEventListener('transitionend', handler);
+  if (!track) { cb(); return; }
+  let done = false;
+  const finish = () => { if (done) return; done = true; track.removeEventListener('transitionend', finish); cb(); };
+  track.addEventListener('transitionend', finish);
+  // Fallback: if transitionend never fires (track removed, re-render, etc.)
+  // release the animating lock after the transition duration + margin.
+  setTimeout(finish, 600);
 }
 
 function goByDelta(delta) {
@@ -920,10 +932,10 @@ function renderSubsTab() {
         <tbody>
           ${subs.map(s => `
           <tr onclick="set({selected:'${s.id}'})" style="cursor:pointer">
-            <td>${s.nome || '—'}</td>
-            <td>${s.cognome || '—'}</td>
-            <td style="color:var(--gray)">${s.email || '—'}</td>
-            <td><span class="badge">${s.category_name}</span></td>
+            <td>${esc(s.nome) || '—'}</td>
+            <td>${esc(s.cognome) || '—'}</td>
+            <td style="color:var(--gray)">${esc(s.email) || '—'}</td>
+            <td><span class="badge">${esc(s.category_name)}</span></td>
             <td style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
             <td>${s.file_path ? '📎 Sì' : '<span style="color:var(--gray)">No</span>'}</td>
             <td><button class="btn btn-sm" onclick="event.stopPropagation();set({selected:'${s.id}'})">Vedi</button></td>
@@ -966,7 +978,7 @@ function renderSubDetail() {
     <div class="card">
       <div class="card-title" style="margin-bottom:20px">Dettaglio iscrizione</div>
       <div class="detail-grid">
-        ${[['Nome bambino',s.nome||'—'],['Cognome bambino',s.cognome||'—'],['Email genitore',s.email||'—'],['Categoria',s.category_name],['Data invio',fmt(s.created_at)]
+        ${[['Nome bambino',esc(s.nome)||'—'],['Cognome bambino',esc(s.cognome)||'—'],['Email genitore',esc(s.email)||'—'],['Categoria',esc(s.category_name)],['Data invio',fmt(s.created_at)]
           ].map(([k,v])=>`
           <div class="detail-item">
             <div class="detail-key">${k}</div>
@@ -1128,16 +1140,13 @@ async function submitForm(catId) {
     const ts = Date.now();
     const paths = {};
     const names = {};
-    console.log('[submitForm] START catId=', catId, 'pendingFiles=', {modulo:!!_pendingFiles.modulo, documento:!!_pendingFiles.documento, certificato:!!_pendingFiles.certificato});
     for (const key of keys) {
       const f = _pendingFiles[key];
       if (f) {
         const ext = f.name.split('.').pop();
         const path = `${catId}/${ts}_${key}.${ext}`;
-        console.log(`[submitForm] uploading ${key}: path=${path}, size=${f.size}, type=${f.type}`);
         const { error: upErr } = await dbPublic.storage.from('submission-files').upload(path, f);
-        if (upErr) { console.error(`[submitForm] UPLOAD ERROR for ${key}:`, upErr); throw upErr; }
-        console.log(`[submitForm] uploaded ${key} OK`);
+        if (upErr) throw upErr;
         paths[key] = path;
         names[key] = f.name;
       }
@@ -1152,9 +1161,7 @@ async function submitForm(catId) {
       file_path: hasFiles ? JSON.stringify(paths) : null,
       file_name: hasFiles ? JSON.stringify(names) : null,
     };
-    console.log('[submitForm] INSERT data:', JSON.stringify(insertData));
-    const { error, data: insertResult } = await dbPublic.from('submissions').insert(insertData).select();
-    console.log('[submitForm] INSERT result:', insertResult, 'error:', error);
+    const { error } = await dbPublic.from('submissions').insert(insertData).select();
     if (error) throw error;
     _pendingFiles.modulo = null; _pendingFiles.documento = null; _pendingFiles.certificato = null;
     set({ formSuccess: true });
@@ -1162,11 +1169,7 @@ async function submitForm(catId) {
   } catch (e) {
     if (btn) { btn.innerHTML = '📤 Invia iscrizione'; btn.disabled = false; }
     errEl.innerHTML = `<div class="alert alert-err">⚠ Errore durante l'invio. Riprova tra qualche istante.</div>`;
-    console.error('[submitForm] CATCH error:', e);
-    console.error('[submitForm] error message:', e?.message);
-    console.error('[submitForm] error details:', e?.details);
-    console.error('[submitForm] error hint:', e?.hint);
-    console.error('[submitForm] error code:', e?.code);
+    console.error('submitForm error:', e);
   }
 }
 
