@@ -960,7 +960,7 @@ function renderSubsTab() {
         </tr></thead>
         <tbody>
           ${subs.map(s => `
-          <tr onclick="set({selected:'${s.id}'})" style="cursor:pointer">
+          <tr>
             <td>${esc(s.nome) || '—'}</td>
             <td>${esc(s.cognome) || '—'}</td>
             <td style="color:var(--gray)">${s.data_nascita ? fmtDate(s.data_nascita) : '—'}</td>
@@ -968,7 +968,7 @@ function renderSubsTab() {
             <td><span class="badge">${esc(s.category_name)}</span></td>
             <td class="hide-mobile" style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
             <td class="hide-mobile">${s.file_path ? '📎 Sì' : '<span style="color:var(--gray)">No</span>'}</td>
-            <td><button class="btn btn-sm" onclick="event.stopPropagation();set({selected:'${s.id}'})">Vedi</button></td>
+            <td><button class="btn btn-sm" onclick="set({selected:'${s.id}'})">Vedi</button></td>
           </tr>`).join('')}
         </tbody>
       </table>
