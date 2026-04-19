@@ -793,6 +793,11 @@ function renderCategory() {
             </div>
 
             <div class="form-row">
+              <label class="lbl">Data di nascita <span class="req">*</span></label>
+              <input type="date" id="f-nascita" autocomplete="bday">
+            </div>
+
+            <div class="form-row">
               <label class="lbl">Email genitore <span class="req">*</span></label>
               <input type="email" id="f-email" placeholder="genitore@example.com" autocomplete="email">
             </div>
@@ -946,13 +951,14 @@ function renderSubsTab() {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Nome</th><th>Cognome</th><th class="hide-mobile">Email genitore</th><th>Categoria</th><th class="hide-mobile">Data</th><th class="hide-mobile">Allegati</th><th></th>
+          <th>Nome</th><th>Cognome</th><th class="hide-mobile">Data nascita</th><th class="hide-mobile">Email genitore</th><th>Categoria</th><th class="hide-mobile">Data</th><th class="hide-mobile">Allegati</th><th></th>
         </tr></thead>
         <tbody>
           ${subs.map(s => `
           <tr onclick="set({selected:'${s.id}'})" style="cursor:pointer">
             <td>${esc(s.nome) || '—'}</td>
             <td>${esc(s.cognome) || '—'}</td>
+            <td class="hide-mobile" style="color:var(--gray)">${s.data_nascita ? fmtDate(s.data_nascita) : '—'}</td>
             <td class="hide-mobile" style="color:var(--gray)">${esc(s.email) || '—'}</td>
             <td><span class="badge">${esc(s.category_name)}</span></td>
             <td class="hide-mobile" style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
@@ -989,6 +995,7 @@ async function exportExcel() {
     return {
       'Nome bambino': s.nome || '',
       'Cognome bambino': s.cognome || '',
+      'Data di nascita': s.data_nascita ? fmtDate(s.data_nascita) : '',
       'Email genitore': s.email || '',
       'Categoria': s.category_name || '',
       'Data': fmtDate(s.created_at),
@@ -998,7 +1005,7 @@ async function exportExcel() {
     };
   });
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:18},{wch:18},{wch:28},{wch:22},{wch:14},{wch:16},{wch:20},{wch:18}];
+  ws['!cols'] = [{wch:18},{wch:18},{wch:14},{wch:28},{wch:22},{wch:14},{wch:16},{wch:20},{wch:18}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Iscrizioni');
   XLSX.writeFile(wb, `iscrizioni_${state.filterCat || 'tutte'}_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -1012,7 +1019,7 @@ function renderSubDetail() {
     <div class="card">
       <div class="card-title" style="margin-bottom:20px">Dettaglio iscrizione</div>
       <div class="detail-grid">
-        ${[['Nome bambino',esc(s.nome)||'—'],['Cognome bambino',esc(s.cognome)||'—'],['Email genitore',esc(s.email)||'—'],['Categoria',esc(s.category_name)],['Data invio',fmt(s.created_at)]
+        ${[['Nome bambino',esc(s.nome)||'—'],['Cognome bambino',esc(s.cognome)||'—'],['Data di nascita',s.data_nascita?fmtDate(s.data_nascita):'—'],['Email genitore',esc(s.email)||'—'],['Categoria',esc(s.category_name)],['Data invio',fmt(s.created_at)]
           ].map(([k,v])=>`
           <div class="detail-item">
             <div class="detail-key">${k}</div>
@@ -1142,9 +1149,10 @@ async function submitForm(catId) {
 
   const nome = document.getElementById('f-nome')?.value.trim();
   const cognome = document.getElementById('f-cognome')?.value.trim();
+  const nascita = document.getElementById('f-nascita')?.value;
   const email = document.getElementById('f-email')?.value.trim();
-  if (!nome || !cognome || !email) {
-    errEl.innerHTML = `<div class="alert alert-err">⚠ Compila tutti i campi obbligatori (nome, cognome, email).</div>`;
+  if (!nome || !cognome || !nascita || !email) {
+    errEl.innerHTML = `<div class="alert alert-err">⚠ Compila tutti i campi obbligatori (nome, cognome, data di nascita, email).</div>`;
     return;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -1191,6 +1199,7 @@ async function submitForm(catId) {
       category_name: catById(catId)?.name || catId,
       nome,
       cognome,
+      data_nascita: nascita,
       email,
       file_path: hasFiles ? JSON.stringify(paths) : null,
       file_name: hasFiles ? JSON.stringify(names) : null,
