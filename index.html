@@ -956,14 +956,14 @@ function renderSubsTab() {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Nome</th><th>Cognome</th><th class="hide-mobile">Data nascita</th><th class="hide-mobile">Email genitore</th><th>Categoria</th><th class="hide-mobile">Data</th><th class="hide-mobile">Allegati</th><th></th>
+          <th>Nome</th><th>Cognome</th><th>Data nascita</th><th class="hide-mobile">Email genitore</th><th>Categoria</th><th class="hide-mobile">Data</th><th class="hide-mobile">Allegati</th><th></th>
         </tr></thead>
         <tbody>
           ${subs.map(s => `
           <tr onclick="set({selected:'${s.id}'})" style="cursor:pointer">
             <td>${esc(s.nome) || '—'}</td>
             <td>${esc(s.cognome) || '—'}</td>
-            <td class="hide-mobile" style="color:var(--gray)">${s.data_nascita ? fmtDate(s.data_nascita) : '—'}</td>
+            <td style="color:var(--gray)">${s.data_nascita ? fmtDate(s.data_nascita) : '—'}</td>
             <td class="hide-mobile" style="color:var(--gray)">${esc(s.email) || '—'}</td>
             <td><span class="badge">${esc(s.category_name)}</span></td>
             <td class="hide-mobile" style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
