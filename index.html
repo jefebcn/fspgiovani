@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Federazione Basket Sammarinese - Sezione Giovani. Iscrizioni e attività per i più piccoli.">
 <title>Federazione Basket Sammarinese · Sezione Giovani</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --navy:#0d1f3c; --navy-l:#1a3560; --orange:#f47c20; --orange-l:#f9a55f;
@@ -29,9 +29,6 @@ nav.nav-hidden{transform:translateY(-100%)}
 .nav-link{color:rgba(255,255,255,.72);font-size:13px;font-weight:600;padding:7px 10px;border-radius:6px;cursor:pointer;transition:color .15s,background .15s}
 .nav-link:hover{color:#fff;background:rgba(255,255,255,.08)}
 .nav-link.active{color:var(--orange)}
-.nav-admin{color:rgba(255,255,255,.4);font-size:11px;padding:5px 8px;border-radius:6px;cursor:pointer;transition:all .15s;border:1px solid rgba(255,255,255,.12);margin-left:8px}
-.nav-admin:hover{color:var(--orange);border-color:rgba(244,124,32,.4)}
-
 /* HAMBURGER */
 .hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;cursor:pointer;padding:8px;margin-left:auto;z-index:101}
 .hamburger span{display:block;width:24px;height:2.5px;background:#fff;border-radius:2px;transition:transform .3s ease,opacity .3s ease}
@@ -59,10 +56,6 @@ nav.nav-hidden{transform:translateY(-100%)}
 .hero-kicker{font-family:'Oswald',sans-serif;color:var(--orange);font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
 .hero-title{font-family:'Oswald',sans-serif;color:#fff;font-size:54px;font-weight:700;line-height:1.05;margin-bottom:16px}
 .hero-desc{color:rgba(255,255,255,.7);font-size:16px;max-width:500px;margin:0 auto 36px;line-height:1.7}
-.photos-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:680px;margin:0 auto}
-.photo-slot{background:var(--navy-l);border-radius:12px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px solid rgba(244,124,32,.25);overflow:hidden}
-.photo-slot img{width:100%;height:100%;object-fit:cover}
-.photo-ph{color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px;line-height:1.6}
 
 /* GALLERY (carousel with peek) */
 .gallery{position:relative;width:100%;max-width:1200px;margin:0 auto;padding:0 60px;outline:none;box-sizing:border-box}
@@ -231,7 +224,6 @@ tr:hover td{background:#fafafa}
 .detail-item{background:var(--off);border-radius:8px;padding:12px 16px}
 .detail-key{font-size:12px;color:var(--gray);margin-bottom:4px}
 .detail-val{font-size:15px;font-weight:600}
-.detail-note{background:var(--off);border-radius:8px;padding:12px 16px;margin-bottom:20px}
 .detail-actions{display:flex;gap:10px;flex-wrap:wrap}
 .empty-state{text-align:center;padding:60px 0;color:var(--gray)}
 .empty-icon{font-size:48px;margin-bottom:14px}
@@ -272,10 +264,10 @@ footer span{color:rgba(255,255,255,.25);font-size:12px;display:block;margin-top:
   .stats-row{grid-template-columns:1fr 1fr}
   .detail-grid{grid-template-columns:1fr}
   .nav-links{display:none}
+  .hide-mobile{display:none}
 }
 @media(max-width:480px){
   .stats-row{grid-template-columns:1fr}
-  .photos-row{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -370,11 +362,34 @@ function toast(msg, type='') {
 }
 
 // ── NAVIGATION ──
+function navUrl(page, catId) {
+  if (page === 'admin') return '#admin';
+  if (page === 'category' && catId) return '#category=' + encodeURIComponent(catId);
+  return '#';
+}
+function applyRoute(fromPop) {
+  const h = window.location.hash;
+  let page = 'home', catId = null;
+  if (h === '#admin') page = 'admin';
+  else if (h.startsWith('#category=')) {
+    const id = decodeURIComponent(h.slice('#category='.length));
+    if (catById(id)) { page = 'category'; catId = id; }
+  }
+  // Reset pending files on every route change
+  _pendingFiles.modulo = null;
+  _pendingFiles.documento = null;
+  _pendingFiles.certificato = null;
+  Object.assign(state, { page, catId, formSuccess: false, selected: null });
+  render();
+  if (!fromPop) window.scrollTo(0, 0);
+}
 function navigate(page, catId = null) {
   // Reset pending files so switching category doesn't carry files over
   _pendingFiles.modulo = null;
   _pendingFiles.documento = null;
   _pendingFiles.certificato = null;
+  const url = navUrl(page, catId);
+  history.pushState({ page, catId }, '', url);
   set({ page, catId, formSuccess: false, selected: null });
   window.scrollTo(0, 0);
 }
@@ -866,6 +881,8 @@ function renderAdminLogin() {
 // ADMIN — DASHBOARD
 // ══════════════════════════════════════════════
 function renderAdminDash() {
+  // Warm up the Excel lib in the background so export is instant on click
+  loadXLSX().catch(() => {});
   const subs = state.submissions;
   const withFile = subs.filter(s => s.file_path).length;
   const cats = [...new Set(subs.map(s => s.category_id))].length;
@@ -927,17 +944,17 @@ function renderSubsTab() {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Nome</th><th>Cognome</th><th>Email genitore</th><th>Categoria</th><th>Data</th><th>Allegati</th><th></th>
+          <th>Nome</th><th>Cognome</th><th class="hide-mobile">Email genitore</th><th>Categoria</th><th class="hide-mobile">Data</th><th class="hide-mobile">Allegati</th><th></th>
         </tr></thead>
         <tbody>
           ${subs.map(s => `
           <tr onclick="set({selected:'${s.id}'})" style="cursor:pointer">
             <td>${esc(s.nome) || '—'}</td>
             <td>${esc(s.cognome) || '—'}</td>
-            <td style="color:var(--gray)">${esc(s.email) || '—'}</td>
+            <td class="hide-mobile" style="color:var(--gray)">${esc(s.email) || '—'}</td>
             <td><span class="badge">${esc(s.category_name)}</span></td>
-            <td style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
-            <td>${s.file_path ? '📎 Sì' : '<span style="color:var(--gray)">No</span>'}</td>
+            <td class="hide-mobile" style="color:var(--gray);font-size:13px">${fmtDate(s.created_at)}</td>
+            <td class="hide-mobile">${s.file_path ? '📎 Sì' : '<span style="color:var(--gray)">No</span>'}</td>
             <td><button class="btn btn-sm" onclick="event.stopPropagation();set({selected:'${s.id}'})">Vedi</button></td>
           </tr>`).join('')}
         </tbody>
@@ -945,7 +962,22 @@ function renderSubsTab() {
     </div>`;
 }
 
-function exportExcel() {
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve();
+  if (window._xlsxLoading) return window._xlsxLoading;
+  window._xlsxLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload = resolve;
+    s.onerror = () => { window._xlsxLoading = null; reject(new Error('xlsx load failed')); };
+    document.head.appendChild(s);
+  });
+  return window._xlsxLoading;
+}
+
+async function exportExcel() {
+  try { await loadXLSX(); }
+  catch (e) { toast('Errore nel caricamento della libreria export', 'err'); return; }
   const subs = getFilteredSubs();
   const rows = subs.map(s => {
     const fp = parseFilePaths(s.file_path);
@@ -1354,13 +1386,14 @@ async function init() {
   state.user = session?.user || null;
   await loadAssets();
   if (state.user) await refreshSubs();
-  if (window.location.hash === '#admin') state.page = 'admin';
-  render();
+  // Seed initial route from the URL hash so direct links work
+  applyRoute(true);
+  // Replace the empty entry so subsequent back button behaves naturally
+  const h = window.location.hash;
+  history.replaceState({ page: state.page, catId: state.catId }, '', h || '#');
 }
 
-window.addEventListener('hashchange', () => {
-  if (window.location.hash === '#admin') { state.page = 'admin'; render(); }
-});
+window.addEventListener('popstate', () => applyRoute(true));
 
 // ── NAVBAR HIDE/SHOW ON SCROLL ──
 (function(){
