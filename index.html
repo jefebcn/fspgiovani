@@ -59,7 +59,7 @@ nav.nav-hidden{transform:translateY(-100%)}
 
 /* GALLERY (carousel with peek) */
 .gallery{position:relative;width:100%;max-width:1200px;margin:0 auto;padding:0 60px;outline:none;box-sizing:border-box}
-.gallery-viewport{overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none}
+.gallery-viewport{overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y}
 .gallery-viewport.dragging{cursor:grabbing}
 .gallery-track{display:flex;transition:transform .65s cubic-bezier(.4,0,.2,1);will-change:transform}
 .gallery-track.no-anim{transition:none}
@@ -640,19 +640,23 @@ function initCarousel() {
     else if (e.key === 'ArrowRight') { e.preventDefault(); nextSlide(); }
   };
 
-  const start = (x) => {
+  const start = (x, ts) => {
     if (_CAROUSEL.animating) return;
     _wasDragged = false;
     const m = getCarouselMetrics();
     if (!m) return;
-    _CAROUSEL.drag = { x, startIdx: _CAROUSEL.idx, m };
+    _CAROUSEL.drag = { x, startIdx: _CAROUSEL.idx, m, lastX: x, lastT: ts, vx: 0 };
     vp.classList.add('dragging');
     track.classList.add('no-anim');
   };
-  const move = (x) => {
+  const move = (x, ts) => {
     if (!_CAROUSEL.drag) return;
     const dx = x - _CAROUSEL.drag.x;
     if (Math.abs(dx) > 5) _wasDragged = true;
+    const dt = ts - _CAROUSEL.drag.lastT;
+    if (dt > 0) _CAROUSEL.drag.vx = (x - _CAROUSEL.drag.lastX) / dt;
+    _CAROUSEL.drag.lastX = x;
+    _CAROUSEL.drag.lastT = ts;
     const m = _CAROUSEL.drag.m;
     const tx = m.peek - _CAROUSEL.drag.startIdx * m.step + dx;
     track.style.transform = `translateX(${tx}px)`;
@@ -661,24 +665,26 @@ function initCarousel() {
     if (!_CAROUSEL.drag) return;
     const dx = x - _CAROUSEL.drag.x;
     const step = _CAROUSEL.drag.m.step;
+    const vx = _CAROUSEL.drag.vx;
     vp.classList.remove('dragging');
     _CAROUSEL.drag = null;
-    // Compute how many slides the drag covered (negative dx = forward)
-    const delta = -Math.round(dx / step);
-    // Small residual drag still counts as a single nav if above 20% threshold
+    // Momentum: flick velocity adds extra slide distance
+    const momentum = vx * 180;
+    const totalDx = dx + momentum;
+    const delta = -Math.round(totalDx / step);
     if (delta !== 0) goByDelta(delta);
-    else if (Math.abs(dx) > step * 0.2) goByDelta(dx < 0 ? 1 : -1);
+    else if (Math.abs(dx) > step * 0.15) goByDelta(dx < 0 ? 1 : -1);
     else setSlide(_CAROUSEL.idx, true);
   };
-  vp.onmousedown = (e) => { e.preventDefault(); start(e.clientX); };
-  vp.ontouchstart = (e) => start(e.touches[0].clientX);
-  vp.ontouchmove = (e) => move(e.touches[0].clientX);
+  vp.onmousedown = (e) => { e.preventDefault(); start(e.clientX, e.timeStamp); };
+  vp.ontouchstart = (e) => start(e.touches[0].clientX, e.timeStamp);
+  vp.ontouchmove = (e) => move(e.touches[0].clientX, e.timeStamp);
   vp.ontouchend = (e) => end(e.changedTouches[0].clientX);
   // Use addEventListener on window so we don't clobber other handlers.
   // Bind once (guarded) to avoid piling listeners on each re-render.
   if (!window._galleryDragBound) {
     window._galleryDragBound = true;
-    window.addEventListener('mousemove', (e) => { if (_CAROUSEL.drag) move(e.clientX); });
+    window.addEventListener('mousemove', (e) => { if (_CAROUSEL.drag) move(e.clientX, e.timeStamp); });
     window.addEventListener('mouseup', (e) => { if (_CAROUSEL.drag) end(e.clientX); });
   }
 
