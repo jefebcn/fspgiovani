@@ -1,103 +1,175 @@
+<!-- Pagina principale della Federazione Basket Sammarinese - Sezione Giovani -->
+<!-- Questo sito permette di visualizzare le attività, iscriversi e gestire i contenuti -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
+<!-- Impostazioni di base della pagina -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Federazione Basket Sammarinese - Sezione Giovani. Iscrizioni e attività per i più piccoli.">
 <title>Federazione Basket Sammarinese · Sezione Giovani</title>
+<!-- Caricamento dei font personalizzati da Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Libreria Supabase per collegarsi al database e allo storage dei file -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+/* ============================================= */
+/* COLORI E VARIABILI GLOBALI                    */
+/* Qui definiamo i colori usati in tutto il sito */
+/* ============================================= */
 :root {
   --navy:#0d1f3c; --navy-l:#1a3560; --orange:#f47c20; --orange-l:#f9a55f;
   --white:#fff; --off:#f8f9fc; --gray:#6b7280; --lgray:#e5e7eb;
   --success:#16a34a; --err:#dc2626;
 }
+
+/* Impostazioni di base per tutti gli elementi della pagina */
 *{margin:0;padding:0;box-sizing:border-box}
+
+/* Il body usa il font Nunito, sfondo chiaro, e si estende per tutta l'altezza dello schermo */
 body{font-family:'Nunito',sans-serif;color:var(--navy);background:var(--off);min-height:100vh;display:flex;flex-direction:column}
+
+/* Il contenitore dell'app cresce per riempire lo spazio tra navbar e footer */
 #app{flex:1}
+
+/* I link non hanno sottolineatura e ereditano il colore dal genitore */
 a{text-decoration:none;color:inherit}
 
-/* NAV */
+/* ============================================= */
+/* BARRA DI NAVIGAZIONE (NAVBAR)                 */
+/* La barra in alto che resta fissa mentre si     */
+/* scorre la pagina. Si nasconde scorrendo giù   */
+/* e riappare scorrendo su.                       */
+/* ============================================= */
 nav{background:var(--navy);padding:0 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);gap:16px;transition:transform .3s ease}
+
+/* Quando si scorre verso il basso, la navbar scivola fuori dallo schermo */
 nav.nav-hidden{transform:translateY(-100%)}
+/* Logo in alto a sinistra: pallina arancione + nome della federazione */
 .nav-logo{display:flex;align-items:center;gap:10px;cursor:pointer;padding:13px 0;flex-shrink:0}
 .nav-logo-ball{width:36px;height:36px;background:var(--orange);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
 .nav-logo-text{font-family:'Oswald',sans-serif;color:#fff;font-size:15px;font-weight:700;line-height:1.2}
 .nav-logo-sub{color:var(--orange);font-size:10px;font-weight:400;letter-spacing:1px}
+
+/* Link delle categorie nella navbar (visibili solo su desktop) */
 .nav-links{display:flex;gap:2px;flex-wrap:wrap;align-items:center}
 .nav-link{color:rgba(255,255,255,.72);font-size:13px;font-weight:600;padding:7px 10px;border-radius:6px;cursor:pointer;transition:color .15s,background .15s}
 .nav-link:hover{color:#fff;background:rgba(255,255,255,.08)}
 .nav-link.active{color:var(--orange)}
-/* HAMBURGER */
+
+/* ============================================= */
+/* MENU HAMBURGER (le 3 lineette su mobile)      */
+/* Visibile solo su schermi piccoli (<=720px).   */
+/* Si trasforma in una X quando il menu è aperto */
+/* ============================================= */
 .hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;cursor:pointer;padding:8px;margin-left:auto;z-index:101}
 .hamburger span{display:block;width:24px;height:2.5px;background:#fff;border-radius:2px;transition:transform .3s ease,opacity .3s ease}
 .hamburger.open span:nth-child(1){transform:translateY(7.5px) rotate(45deg)}
 .hamburger.open span:nth-child(2){opacity:0}
 .hamburger.open span:nth-child(3){transform:translateY(-7.5px) rotate(-45deg)}
 
-/* MOBILE MENU */
+/* Menu a tendina che appare sotto la navbar su mobile quando si clicca l'hamburger */
 .mobile-menu{display:none;flex-direction:column;background:var(--navy);position:absolute;top:100%;left:0;right:0;padding:12px 24px 20px;box-shadow:0 8px 24px rgba(0,0,0,.4);gap:4px;max-height:0;overflow-y:auto;transition:max-height .35s ease,padding .35s ease}
 .mobile-menu.open{max-height:calc(100vh - 64px);padding:12px 24px 20px}
 .mobile-menu .nav-link{display:block;padding:12px 10px;font-size:15px;border-bottom:1px solid rgba(255,255,255,.06)}
 .mobile-menu .nav-link:last-child{border-bottom:none}
 
+/* Su schermi piccoli: mostra hamburger, nascondi link desktop */
 @media(max-width:720px){
   .hamburger{display:flex}
   .mobile-menu{display:flex;max-height:0;padding:0 24px}
 }
 
-/* HERO */
+/* ============================================= */
+/* SEZIONE HERO (la grande area blu in cima)     */
+/* Contiene il titolo principale, la descrizione */
+/* e il carousel delle foto                      */
+/* ============================================= */
 .hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-l) 55%,#2a4a7f 100%);padding:60px 24px 52px;text-align:center;overflow:hidden;position:relative}
+
+/* Cerchi decorativi arancioni semi-trasparenti sullo sfondo */
 .hero-bg1,.hero-bg2{position:absolute;border-radius:50%;background:rgba(244,124,32,.07);pointer-events:none}
 .hero-bg1{width:320px;height:320px;top:-80px;right:-60px}
 .hero-bg2{width:220px;height:220px;bottom:-50px;left:20px}
+
+/* Il contenuto dell'hero sta sopra i cerchi decorativi */
 .hero-inner{position:relative;z-index:1}
 .hero-kicker{font-family:'Oswald',sans-serif;color:var(--orange);font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
 .hero-title{font-family:'Oswald',sans-serif;color:#fff;font-size:54px;font-weight:700;line-height:1.05;margin-bottom:16px}
 .hero-desc{color:rgba(255,255,255,.7);font-size:16px;max-width:500px;margin:0 auto 36px;line-height:1.7}
 
-/* GALLERY (carousel with peek) */
+/* ============================================= */
+/* GALLERIA / CAROUSEL DELLE FOTO                */
+/* Mostra le foto della home in un carousel      */
+/* scorrevole con frecce, touch e mouse drag.    */
+/* Le foto scorrono in modo circolare (infinito) */
+/* ============================================= */
 .gallery{position:relative;width:100%;max-width:1200px;margin:0 auto;padding:0 60px;outline:none;box-sizing:border-box}
+
+/* La finestra che mostra le foto — il contenuto che esce viene nascosto */
 .gallery-viewport{overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y}
 .gallery-viewport.dragging{cursor:grabbing}
+
+/* Il binario che contiene tutte le foto in fila — si sposta a destra e sinistra */
 .gallery-track{display:flex;transition:transform .65s cubic-bezier(.4,0,.2,1);will-change:transform}
 .gallery-track.no-anim{transition:none}
+/* Ogni singola foto del carousel — occupa il 43% della larghezza su desktop */
 .gallery-item{flex:0 0 43%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0a1730;border:2px solid rgba(244,124,32,.25);display:flex;align-items:center;justify-content:center;margin:0 6px;box-sizing:border-box;box-shadow:0 8px 24px rgba(0,0,0,.3);position:relative}
+
+/* L'immagine parte invisibile (opacity 0) e appare con una transizione quando è caricata */
 .gallery-item img{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block;opacity:0;transition:opacity .3s ease}
 .gallery-item.loaded img{opacity:1}
+
+/* Icona fotocamera mostrata negli slot senza foto caricata */
 .gallery-item-empty{color:rgba(255,255,255,.22);font-size:48px}
+
+/* Effetto "shimmer" (luccichio) mostrato mentre la foto si sta caricando */
 .gallery-item-placeholder{position:absolute;inset:0;background:linear-gradient(90deg,#0a1730 0%,#1a3560 50%,#0a1730 100%);background-size:200% 100%;animation:gallery-shimmer 1.4s linear infinite;pointer-events:none;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:28px}
 .gallery-item.loaded .gallery-item-placeholder{display:none}
 @keyframes gallery-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+/* Frecce laterali per navigare tra le foto (visibili solo su desktop) */
 .gallery-btn{position:absolute;top:calc(50% - 10px);transform:translateY(-50%);background:rgba(13,31,60,.82);color:#fff;border:none;width:46px;height:46px;border-radius:50%;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s}
 .gallery-btn:hover{background:rgba(244,124,32,.9)}
 .gallery-btn-prev{left:4px}
 .gallery-btn-next{right:4px}
+
+/* Pallini indicatori che mostrano quale foto è visualizzata */
 .gallery-dots{display:flex;justify-content:center;gap:8px}
 .gallery-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3);border:none;cursor:pointer;padding:0;transition:background .2s,transform .2s}
 .gallery-dot.active{background:var(--orange);transform:scale(1.3)}
+
+/* Cursore lente quando si passa sopra una foto (cliccabile per ingrandire) */
 .gallery-item-clickable{cursor:zoom-in}
+
+/* Barra dei controlli sotto il carousel: contiene frecce mobile + pallini */
 .gallery-controls{display:flex;justify-content:center;align-items:center;gap:18px;margin-top:18px}
+
+/* Frecce per navigare su mobile (nascoste su desktop, mostrate su mobile) */
 .gallery-btn-b{display:none;background:rgba(13,31,60,.82);color:#fff;border:none;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:22px;align-items:center;justify-content:center;transition:background .15s}
 .gallery-btn-b:hover{background:rgba(244,124,32,.9)}
+
+/* Adattamenti del carousel per schermi più piccoli */
 @media(max-width:900px){
-  .gallery-item{flex:0 0 60%}
+  .gallery-item{flex:0 0 60%} /* Su tablet: una foto occupa il 60% */
 }
 @media(max-width:720px){
   .gallery{padding:0 10px}
-  .gallery-btn-prev,.gallery-btn-next{display:none}
-  .gallery-btn-b{display:flex}
+  .gallery-btn-prev,.gallery-btn-next{display:none} /* Nascondi frecce laterali su mobile */
+  .gallery-btn-b{display:flex} /* Mostra frecce sotto le foto su mobile */
   .gallery-controls{margin-top:14px}
 }
 @media(max-width:560px){
-  .gallery-item{flex:0 0 80%}
+  .gallery-item{flex:0 0 80%} /* Su telefono: una foto occupa l'80% */
 }
 @media(max-width:480px){
   .gallery{padding:0 6px}
 }
 
-/* LIGHTBOX */
+/* ============================================= */
+/* LIGHTBOX (visualizzazione foto a schermo intero) */
+/* Si apre cliccando su una foto del carousel.   */
+/* Si chiude cliccando fuori, sulla X o con ESC  */
+/* ============================================= */
 .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:1000;display:flex;align-items:center;justify-content:center;animation:lb-fade .2s ease;cursor:zoom-out;padding:20px}
 @keyframes lb-fade{from{opacity:0}to{opacity:1}}
 .lightbox-img{max-width:92vw;max-height:88vh;object-fit:contain;cursor:default;user-select:none;-webkit-user-select:none;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
@@ -115,12 +187,18 @@ nav.nav-hidden{transform:translateY(-100%)}
   .lightbox-next{right:8px}
 }
 
-/* SECTION */
+/* ============================================= */
+/* SEZIONI DI CONTENUTO                          */
+/* Contenitori centrali usati nelle pagine       */
+/* ============================================= */
 .section{max-width:980px;margin:0 auto;padding:52px 24px}
 .section-title{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;color:var(--navy);margin-bottom:6px}
 .section-line{width:48px;height:4px;background:var(--orange);border-radius:2px;margin-bottom:32px}
 
-/* CAT GRID */
+/* ============================================= */
+/* GRIGLIA DELLE CATEGORIE (home page)           */
+/* Le card cliccabili che portano alle categorie */
+/* ============================================= */
 .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
 .cat-card{background:#fff;border-radius:14px;padding:28px 24px;border:1.5px solid var(--lgray);cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:10px}
 .cat-card:hover{border-color:var(--orange);transform:translateY(-3px);box-shadow:0 8px 24px rgba(244,124,32,.14)}
@@ -129,28 +207,36 @@ nav.nav-hidden{transform:translateY(-100%)}
 .cat-desc{font-size:14px;color:var(--gray);line-height:1.5}
 .cat-arrow{color:var(--orange);font-size:18px;font-weight:700;margin-top:auto}
 
-/* BREADCRUMB */
+/* Percorso di navigazione (es. "Home > Centro Estivo") */
 .breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:28px;font-size:14px;color:var(--gray)}
 .bc-link{color:var(--orange);cursor:pointer;font-weight:600}
 
-/* TWO COL */
+/* Layout a due colonne: volantino a sinistra, modulo a destra */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
 .page-title{font-family:'Oswald',sans-serif;font-size:36px;font-weight:700;margin-bottom:4px}
 .page-sub{color:var(--gray);font-size:15px;margin-bottom:32px}
 
-/* CARD */
+/* Card bianca con bordo grigio — usata per contenere volantini, moduli, ecc. */
 .card{background:#fff;border-radius:14px;padding:28px;border:1.5px solid var(--lgray)}
 .card-title{font-family:'Oswald',sans-serif;font-size:19px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:8px}
 
-/* FLYER */
+/* ============================================= */
+/* RIQUADRO DEL VOLANTINO                        */
+/* Mostra l'immagine del volantino della         */
+/* categoria, o un segnaposto se non è caricato  */
+/* ============================================= */
 .flyer-box{background:linear-gradient(145deg,var(--navy),var(--navy-l));border-radius:10px;aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;color:#fff;text-align:center;gap:10px;overflow:hidden;position:relative}
+/* Quando c'è un'immagine, il riquadro si adatta alle dimensioni della foto */
 .flyer-box:has(img){aspect-ratio:auto;padding:0}
 .flyer-box img{width:100%;height:auto;display:block;border-radius:10px}
 .flyer-ph{display:flex;flex-direction:column;align-items:center;gap:10px;z-index:1}
 .flyer-ph-title{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700}
 .flyer-ph-note{font-size:12px;color:rgba(255,255,255,.4);margin-top:8px}
 
-/* BUTTONS */
+/* ============================================= */
+/* PULSANTI                                      */
+/* Vari stili di pulsanti usati nel sito         */
+/* ============================================= */
 .btn{background:var(--orange);color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
 .btn:hover{background:#e06b10;transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
@@ -164,7 +250,10 @@ nav.nav-hidden{transform:translateY(-100%)}
 .btn-full{width:100%;justify-content:center}
 .btn-sm{padding:6px 14px;font-size:12px}
 
-/* FORM */
+/* ============================================= */
+/* MODULO DI ISCRIZIONE                          */
+/* Stili per campi di testo, email, upload file  */
+/* ============================================= */
 .form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 label.lbl{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;display:block}
 .req{color:var(--orange)}
@@ -174,6 +263,8 @@ input[type=text],input[type=email],input[type=tel],input[type=password],textarea
 input:focus,textarea:focus,select:focus{border-color:var(--orange)}
 textarea{resize:vertical;min-height:80px;line-height:1.5}
 .form-row{margin-bottom:16px;width:100%;max-width:100%;overflow:hidden;box-sizing:border-box}
+
+/* Area tratteggiata dove si trascinano o si selezionano i file da caricare */
 .file-drop{border:2px dashed var(--lgray);border-radius:8px;padding:20px 16px;text-align:center;cursor:pointer;background:var(--off);transition:all .15s;user-select:none;-webkit-user-select:none;width:100%;max-width:100%;overflow:hidden;box-sizing:border-box;min-width:0}
 .file-drop:hover,.file-drop.drag{border-color:var(--orange);background:#fff8f2}
 .file-drop-icon{font-size:22px;margin-bottom:6px}
@@ -182,7 +273,10 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .file-name{color:var(--success);font-weight:700;font-size:14px;margin-bottom:4px}
 .file-meta{font-size:12px;color:var(--gray)}
 
-/* ALERTS */
+/* ============================================= */
+/* MESSAGGI DI AVVISO E CONFERMA                 */
+/* Riquadri rossi per errori, verdi per successo */
+/* ============================================= */
 .alert{border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:14px;line-height:1.5}
 .alert-err{background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b}
 .alert-ok{background:#f0fdf4;border:1.5px solid #86efac;color:#166534}
@@ -191,7 +285,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .success-title{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;color:var(--success);margin-bottom:8px}
 .success-text{color:#166534;font-size:15px;margin-bottom:20px;line-height:1.6}
 
-/* ADMIN */
+/* ============================================= */
+/* PANNELLO AMMINISTRATORE                       */
+/* Stili per login, dashboard, tabella           */
+/* iscrizioni, dettagli e gestione contenuti     */
+/* ============================================= */
 .admin-wrap{max-width:400px;margin:80px auto;padding:0 24px}
 .admin-card{background:#fff;border-radius:16px;padding:40px 36px;border:1.5px solid var(--lgray);box-shadow:0 4px 24px rgba(0,0,0,.06)}
 .admin-icon{font-size:36px;margin-bottom:10px;display:block;text-align:center}
@@ -227,7 +325,7 @@ tr:hover td{background:#fafafa}
 .empty-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--navy)}
 .empty-text{font-size:14px}
 
-/* CONTENT UPLOAD (admin) */
+/* Gestione upload di volantini, moduli e foto dall'admin */
 .asset-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--lgray);gap:12px;flex-wrap:wrap}
 .asset-row:last-child{border-bottom:none}
 .asset-cat{font-weight:700;font-size:14px}
@@ -236,24 +334,27 @@ tr:hover td{background:#fafafa}
 .asset-slot-ok{background:#f0fdf4;border:1px solid #86efac}
 .asset-slot-miss{border:1.5px dashed var(--lgray)}
 
-/* LOADING */
+/* Animazione di caricamento (cerchietto che gira) */
 .loader{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
 .loader-dark{border-color:rgba(0,0,0,.15);border-top-color:var(--navy)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .page-loader{text-align:center;padding:80px 24px;color:var(--gray);font-size:15px}
 
-/* TOAST */
+/* Notifiche temporanee che appaiono in basso a destra */
 #toast{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast-msg{background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;transform:translateY(12px);transition:all .3s;pointer-events:none;max-width:300px}
 .toast-msg.show{opacity:1;transform:translateY(0)}
 .toast-msg.ok{background:#166534}
 .toast-msg.err{background:#991b1b}
 
-/* FOOTER */
+/* Piè di pagina fisso in fondo alla pagina */
 footer{background:var(--navy);color:rgba(255,255,255,.45);text-align:center;padding:24px 16px;font-size:13px;margin-top:auto;word-break:break-word;overflow-wrap:break-word}
 footer span{color:rgba(255,255,255,.25);font-size:12px;display:block;margin-top:5px}
 
-/* RESPONSIVE */
+/* ============================================= */
+/* ADATTAMENTI PER SCHERMI PICCOLI (RESPONSIVE)  */
+/* Modifica il layout per tablet e telefoni      */
+/* ============================================= */
 @media(max-width:720px){
   .hero-title{font-size:38px}
   .two-col{grid-template-columns:1fr}
@@ -273,8 +374,13 @@ footer span{color:rgba(255,255,255,.25);font-size:12px;display:block;margin-top:
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ============================== -->
+<!-- BARRA DI NAVIGAZIONE          -->
+<!-- Contiene logo, link categorie -->
+<!-- e menu hamburger per mobile   -->
+<!-- ============================== -->
 <nav id="navbar">
+  <!-- Logo cliccabile che riporta alla home -->
   <div class="nav-logo" onclick="navigate('home')">
     <div class="nav-logo-ball">🏀</div>
     <div class="nav-logo-text">
@@ -282,32 +388,46 @@ footer span{color:rgba(255,255,255,.25);font-size:12px;display:block;margin-top:
       <span class="nav-logo-sub">Sezione Giovani · San Marino</span>
     </div>
   </div>
+  <!-- Link delle categorie (visibili solo su desktop, nascosti su mobile) -->
   <div class="nav-links" id="nav-links"></div>
+  <!-- Pulsante hamburger (3 lineette) visibile solo su mobile -->
   <div class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
     <span></span><span></span><span></span>
   </div>
+  <!-- Menu a tendina che si apre su mobile quando si clicca l'hamburger -->
   <div class="mobile-menu" id="mobile-menu"></div>
 </nav>
 
-<!-- APP -->
+<!-- ============================== -->
+<!-- CONTENUTO PRINCIPALE           -->
+<!-- Qui viene inserito il          -->
+<!-- contenuto della pagina attiva  -->
+<!-- (home, categoria o admin)      -->
+<!-- ============================== -->
 <div id="app"></div>
 
-<!-- FOOTER -->
+<!-- ============================== -->
+<!-- PIÈ DI PAGINA                  -->
+<!-- ============================== -->
 <footer>
   © 2025 Federazione Basket Sammarinese · Sezione Giovani
   <span>San Marino · Tutti i diritti riservati</span>
 </footer>
 
-<!-- TOAST -->
+<!-- Contenitore per le notifiche temporanee (toast) in basso a destra -->
 <div id="toast"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════
-// ⚙️  CONFIG — modifica questi valori
+// ⚙️  CONFIGURAZIONE
+// Qui ci sono l'indirizzo del database Supabase e la
+// chiave pubblica per accedervi. Sono valori specifici
+// per questo progetto e non vanno condivisi.
 // ═══════════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://wbuxofdvnwqrtcswstar.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndidXhvZmR2bndxcnRjc3dzdGFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDg2NTIsImV4cCI6MjA5MTQ4NDY1Mn0.EHJ-naRbO-h2zFjGGqBdvhV7jIheofKihHmfWDOzuPA';
 
+// Lista delle categorie mostrate nel sito (con icona e descrizione)
 const CATEGORIES = [
   { id:'centro-estivo', name:'Centro Estivo',  icon:'☀️', desc:'Attività estive per i più piccoli' },
   { id:'categoria-2',   name:'Incontri',       icon:'🏀', desc:'Descrizione da aggiornare' },
@@ -318,6 +438,9 @@ const CATEGORIES = [
 ];
 // ═══════════════════════════════════════════════════════
 
+// Creazione dei client per comunicare con il database Supabase
+// "db" è per l'admin (mantiene la sessione di login nel browser)
+// "dbPublic" è per gli utenti pubblici (non salva sessione)
 const { createClient } = window.supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, storageKey: 'fsp-auth', storage: window.localStorage }
@@ -326,7 +449,9 @@ const dbPublic = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-// ── STATE ──
+// ── STATO DELL'APPLICAZIONE ──
+// Questo oggetto contiene tutte le informazioni sulla pagina corrente,
+// l'utente loggato, le iscrizioni ricevute, i contenuti caricati, ecc.
 const state = {
   page: 'home',
   catId: null,
@@ -340,18 +465,25 @@ const state = {
   loading: false,
 };
 
+// Aggiorna lo stato e ridisegna la pagina
 function set(upd) { Object.assign(state, upd); render(); }
 
-// ── HELPERS ──
+// ── FUNZIONI DI UTILITÀ ──
+// Cerca una categoria per il suo identificativo
 function catById(id) { return CATEGORIES.find(c => c.id === id); }
+// Formatta una data con ora (es. "25/04/2026, 15:30")
 function fmt(iso) { return new Date(iso).toLocaleString('it-IT'); }
+// Formatta solo la data senza ora (es. "25/04/2026")
 function fmtDate(iso) { return new Date(iso).toLocaleDateString('it-IT'); }
+// Formatta la dimensione di un file in KB o MB
 function fmtSize(b) { return b > 1048576 ? (b/1048576).toFixed(1)+' MB' : Math.round(b/1024)+' KB'; }
+// Protegge il testo da attacchi XSS sostituendo caratteri speciali HTML
 function esc(s) {
   if (s == null) return '';
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// Mostra una notifica temporanea in basso a destra
 function toast(msg, type='') {
   const el = document.createElement('div');
   el.className = 'toast-msg ' + type;
@@ -361,12 +493,16 @@ function toast(msg, type='') {
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 350); }, 3200);
 }
 
-// ── NAVIGATION ──
+// ── NAVIGAZIONE TRA LE PAGINE ──
+// Il sito è una Single Page Application: non ricarica la pagina
+// ma aggiorna solo il contenuto. L'URL cambia con gli hash (#)
+// e il tasto Indietro del browser funziona grazie a history.pushState.
 function navUrl(page, catId) {
   if (page === 'admin') return '#admin';
   if (page === 'category' && catId) return '#category=' + encodeURIComponent(catId);
   return '#';
 }
+// Legge l'URL attuale e mostra la pagina corrispondente
 function applyRoute(fromPop) {
   const h = window.location.hash;
   let page = 'home', catId = null;
@@ -383,8 +519,9 @@ function applyRoute(fromPop) {
   render();
   if (!fromPop) window.scrollTo(0, 0);
 }
+// Naviga a una nuova pagina, aggiorna l'URL e ridisegna il contenuto
 function navigate(page, catId = null) {
-  // Reset pending files so switching category doesn't carry files over
+  // Pulisce i file selezionati per non portarli in un'altra categoria
   _pendingFiles.modulo = null;
   _pendingFiles.documento = null;
   _pendingFiles.certificato = null;
@@ -395,7 +532,9 @@ function navigate(page, catId = null) {
   window.scrollTo(0, 0);
 }
 
-// ── NAV LINKS ──
+// ── COSTRUZIONE DEI LINK NELLA NAVBAR ──
+// Crea i link delle categorie nella barra di navigazione
+// e nel menu hamburger per mobile
 function renderNav() {
   const wrap = document.getElementById('nav-links');
   const links = CATEGORIES.map(c =>
@@ -410,22 +549,33 @@ function renderNav() {
   ).join('');
 }
 
+// Apre o chiude il menu hamburger su mobile
 function toggleMobileMenu() {
   document.getElementById('hamburger').classList.toggle('open');
   document.getElementById('mobile-menu').classList.toggle('open');
 }
+// Chiude il menu hamburger (usato quando si naviga)
 function closeMobileMenu() {
   document.getElementById('hamburger')?.classList.remove('open');
   document.getElementById('mobile-menu')?.classList.remove('open');
 }
 
 // ══════════════════════════════════════════════
-// HOME
+// PAGINA HOME
+// Contiene il carousel delle foto e la griglia
+// delle categorie cliccabili.
 // ══════════════════════════════════════════════
+
+// Stato interno del carousel:
+// idx = posizione attuale nel binario (include cloni per il loop infinito)
+// leftClones/rightClones = 2 copie extra su ogni lato per il loop circolare
 const _CAROUSEL = { idx: 2, drag: null, animating: false, count: 8, leftClones: 2, rightClones: 2 };
+// Flag per distinguere un trascinamento da un click (evita di aprire il lightbox durante uno swipe)
 let _wasDragged = false;
+// Stato del lightbox (foto a schermo intero)
 const _LIGHTBOX = { photos: [], idx: 0 };
 
+// Restituisce un array con tutti gli 8 slot foto (url o null se vuoto)
 function getAllHeroSlots() {
   const out = [];
   for (let n = 1; n <= 8; n++) {
@@ -433,15 +583,18 @@ function getAllHeroSlots() {
   }
   return out;
 }
+// Restituisce solo le foto effettivamente caricate (senza slot vuoti)
 function getUploadedPhotos() {
   return getAllHeroSlots().filter(p => p.url);
 }
 
+// Gestisce il click su una foto: apre il lightbox, ma solo se non era un trascinamento
 function handleSlideClick(n) {
   if (_wasDragged) { _wasDragged = false; return; }
   openLightbox(n);
 }
 
+// Apre la foto a schermo intero (lightbox) — blocca lo scroll della pagina
 function openLightbox(slideN) {
   const photos = getUploadedPhotos();
   const i = photos.findIndex(p => p.n === slideN);
@@ -452,24 +605,28 @@ function openLightbox(slideN) {
   document.body.style.overflow = 'hidden';
 }
 
+// Chiude il lightbox e riattiva lo scroll della pagina
 function closeLightbox() {
   const lb = document.getElementById('lightbox');
   if (lb) lb.remove();
   document.body.style.overflow = '';
 }
 
+// Vai alla foto successiva nel lightbox (circolare)
 function lightboxNext() {
   if (!_LIGHTBOX.photos.length) return;
   _LIGHTBOX.idx = (_LIGHTBOX.idx + 1) % _LIGHTBOX.photos.length;
   updateLightboxImg();
 }
 
+// Vai alla foto precedente nel lightbox (circolare)
 function lightboxPrev() {
   if (!_LIGHTBOX.photos.length) return;
   _LIGHTBOX.idx = (_LIGHTBOX.idx - 1 + _LIGHTBOX.photos.length) % _LIGHTBOX.photos.length;
   updateLightboxImg();
 }
 
+// Crea l'HTML del lightbox e lo inserisce nel body
 function renderLightbox() {
   const existing = document.getElementById('lightbox');
   if (existing) existing.remove();
@@ -486,6 +643,7 @@ function renderLightbox() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+// Aggiorna l'immagine e il contatore senza ricreare tutto il lightbox
 function updateLightboxImg() {
   const img = document.getElementById('lightbox-img');
   const ctr = document.getElementById('lightbox-counter');
@@ -493,6 +651,7 @@ function updateLightboxImg() {
   if (ctr) ctr.textContent = `${_LIGHTBOX.idx+1} / ${_LIGHTBOX.photos.length}`;
 }
 
+// Tastiera nel lightbox: ESC per chiudere, frecce per navigare
 document.addEventListener('keydown', (e) => {
   if (!document.getElementById('lightbox')) return;
   if (e.key === 'Escape') { e.preventDefault(); closeLightbox(); }
@@ -500,6 +659,9 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowRight') { e.preventDefault(); lightboxNext(); }
 });
 
+// Costruisce l'HTML del carousel con i cloni per il loop infinito
+// Il binario ha: [2 cloni delle ultime foto] [8 foto reali] [2 cloni delle prime foto]
+// Così quando si arriva alla fine, si "salta" silenziosamente all'inizio
 function renderCarousel() {
   const N = _CAROUSEL.count;
   const LC = _CAROUSEL.leftClones;
@@ -537,6 +699,8 @@ function renderCarousel() {
     </div>`;
 }
 
+// Misura le dimensioni reali delle foto e della finestra del carousel
+// per calcolare correttamente la posizione di scorrimento
 function getCarouselMetrics() {
   const track = document.getElementById('gallery-track');
   const vp = document.getElementById('gallery-viewport');
@@ -553,6 +717,7 @@ function getCarouselMetrics() {
   return { step, peek, vpW };
 }
 
+// Sposta il carousel alla posizione della foto "i" (con o senza animazione)
 function setSlide(i, anim) {
   const track = document.getElementById('gallery-track');
   const m = getCarouselMetrics();
@@ -563,6 +728,7 @@ function setSlide(i, anim) {
   track.style.transform = `translateX(${tx}px)`;
 }
 
+// Aggiorna i pallini indicatori per evidenziare la foto corrente
 function updateDots() {
   const N = _CAROUSEL.count;
   const LC = _CAROUSEL.leftClones;
@@ -574,6 +740,8 @@ function updateDots() {
   });
 }
 
+// Esegue una funzione dopo che l'animazione del carousel finisce
+// Ha un timeout di sicurezza di 600ms nel caso l'evento non arrivi
 function afterTransition(cb) {
   const track = document.getElementById('gallery-track');
   if (!track) { cb(); return; }
@@ -585,6 +753,9 @@ function afterTransition(cb) {
   setTimeout(finish, 600);
 }
 
+// Sposta il carousel di "delta" foto (positivo = avanti, negativo = indietro)
+// Gestisce il loop infinito: se si finisce su un clone, salta silenziosamente
+// alla foto reale corrispondente dopo l'animazione
 function goByDelta(delta) {
   const N = _CAROUSEL.count;
   const LC = _CAROUSEL.leftClones;
@@ -607,9 +778,11 @@ function goByDelta(delta) {
   });
 }
 
+// Scorciatoie per andare alla foto successiva o precedente
 function nextSlide() { goByDelta(1); }
 function prevSlide() { goByDelta(-1); }
 
+// Vai direttamente a una foto specifica (cliccando un pallino)
 function goSlide(realN) {
   if (_CAROUSEL.animating) return;
   // realN is 1-based real photo index (1..N) from the dot buttons
@@ -617,6 +790,8 @@ function goSlide(realN) {
   updateDots();
 }
 
+// Inizializza il carousel: posiziona le foto, attiva tastiera,
+// mouse drag e touch swipe, e marca le foto già caricate
 function initCarousel() {
   const gal = document.getElementById('gallery');
   const vp = document.getElementById('gallery-viewport');
@@ -696,6 +871,7 @@ function initCarousel() {
   }
 }
 
+// Costruisce l'HTML della pagina home con hero, carousel e griglia categorie
 function renderHome() {
   return `
   <div class="hero">
@@ -723,7 +899,9 @@ function renderHome() {
 }
 
 // ══════════════════════════════════════════════
-// CATEGORY
+// PAGINA CATEGORIA
+// Mostra il volantino, il modulo da scaricare
+// e il form di iscrizione con upload dei file.
 // ══════════════════════════════════════════════
 function renderCategory() {
   const cat = catById(state.catId);
@@ -871,7 +1049,9 @@ function renderCategory() {
 }
 
 // ══════════════════════════════════════════════
-// ADMIN — LOGIN
+// PANNELLO ADMIN — SCHERMATA DI LOGIN
+// Mostra il modulo email+password per accedere
+// all'area riservata della federazione.
 // ══════════════════════════════════════════════
 function renderAdminLogin() {
   return `
@@ -896,10 +1076,12 @@ function renderAdminLogin() {
 }
 
 // ══════════════════════════════════════════════
-// ADMIN — DASHBOARD
+// PANNELLO ADMIN — DASHBOARD PRINCIPALE
+// Mostra statistiche, tabella iscrizioni, filtri
+// e la sezione per gestire i contenuti caricati.
 // ══════════════════════════════════════════════
 function renderAdminDash() {
-  // Warm up the Excel lib in the background so export is instant on click
+  // Carica la libreria Excel in background così il pulsante Esporta è pronto subito
   loadXLSX().catch(() => {});
   const subs = state.submissions;
   const withFile = subs.filter(s => s.file_path).length;
@@ -933,10 +1115,12 @@ function renderAdminDash() {
   </div>`;
 }
 
+// Filtra le iscrizioni in base alla categoria selezionata nel menu a tendina
 function getFilteredSubs() {
   return state.filterCat ? state.submissions.filter(s => s.category_id === state.filterCat) : state.submissions;
 }
 
+// Costruisce la tabella delle iscrizioni con filtro per categoria e pulsante export
 function renderSubsTab() {
   if (state.selected) return renderSubDetail();
   const allSubs = state.submissions;
@@ -981,6 +1165,7 @@ function renderSubsTab() {
     </div>`;
 }
 
+// Carica la libreria SheetJS (per l'export Excel) solo quando serve, non per tutti
 function loadXLSX() {
   if (window.XLSX) return Promise.resolve();
   if (window._xlsxLoading) return window._xlsxLoading;
@@ -994,6 +1179,7 @@ function loadXLSX() {
   return window._xlsxLoading;
 }
 
+// Esporta le iscrizioni visibili in un file Excel (.xlsx) scaricabile
 async function exportExcel() {
   try { await loadXLSX(); }
   catch (e) { toast('Errore nel caricamento della libreria export', 'err'); return; }
@@ -1022,6 +1208,7 @@ async function exportExcel() {
   XLSX.writeFile(wb, `iscrizioni_${state.filterCat || 'tutte'}_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
+// Mostra i dettagli di una singola iscrizione con pulsanti per scaricare i file
 function renderSubDetail() {
   const s = state.submissions.find(x => x.id === state.selected);
   if (!s) return '<button class="btn-outline" onclick="set({selected:null})">← Indietro</button>';
@@ -1050,6 +1237,8 @@ function renderSubDetail() {
     </div>`;
 }
 
+// Costruisce la sezione "Contenuti categorie" dell'admin
+// con gli slot per caricare le foto della home, i volantini e i moduli Word
 function renderContentTab() {
   const heroRows = [1,2,3,4,5,6,7,8].map(n => {
     const h = state.assets['__hero'+n] || {};
@@ -1107,7 +1296,10 @@ function renderContentTab() {
 }
 
 // ══════════════════════════════════════════════
-// RENDER
+// MOTORE DI RENDERING
+// Questa funzione decide quale pagina mostrare
+// in base allo stato corrente dell'applicazione.
+// Viene chiamata ogni volta che qualcosa cambia.
 // ══════════════════════════════════════════════
 function render() {
   renderNav();
@@ -1121,21 +1313,28 @@ function render() {
 }
 
 // ══════════════════════════════════════════════
-// FORM (public)
+// GESTIONE FILE DEL FORM DI ISCRIZIONE
+// Gestisce la selezione e il caricamento dei 3
+// file obbligatori: modulo, documento, certificato
 // ══════════════════════════════════════════════
+// File selezionati dall'utente, in attesa di invio
 const _pendingFiles = { modulo: null, documento: null, certificato: null };
-let _pendingAssetMeta = null; // {catId, kind}
+// Informazioni sull'asset che l'admin sta caricando (volantino o modulo)
+let _pendingAssetMeta = null;
 
+// Quando l'utente seleziona un file dal suo dispositivo
 function handleMultiSelect(e, key) {
   const f = e.target.files[0];
   if (f) { _pendingFiles[key] = f; updateMultiLabel(key, f); updateFileSummary(); }
 }
+// Quando l'utente trascina un file nell'area di upload
 function handleMultiDrop(e, key) {
   e.preventDefault();
   document.getElementById('file-drop-' + key)?.classList.remove('drag');
   const f = e.dataTransfer.files[0];
   if (f) { _pendingFiles[key] = f; updateMultiLabel(key, f); updateFileSummary(); }
 }
+// Tronca i nomi file troppo lunghi con "..." mantenendo l'estensione
 function truncName(name, max) {
   if (name.length <= max) return name;
   const dot = name.lastIndexOf('.');
@@ -1144,16 +1343,20 @@ function truncName(name, max) {
   const keep = max - ext.length - 3;
   return keep > 0 ? base.slice(0, keep) + '...' + ext : name.slice(0, max - 3) + '...';
 }
+// Aggiorna l'etichetta dell'area di upload con il nome del file selezionato e la spunta verde
 function updateMultiLabel(key, f) {
   const el = document.getElementById('file-label-' + key);
   if (el) el.innerHTML = `<div class="file-name">✅ ${truncName(f.name, 25)}</div><div class="file-meta">${fmtSize(f.size)} · Clicca per cambiare</div>`;
 }
+// Mostra il conteggio "Hai allegato X file su 3" sotto gli upload
 function updateFileSummary() {
   const count = Object.values(_pendingFiles).filter(Boolean).length;
   const el = document.getElementById('file-summary');
   if (el) el.innerHTML = count > 0 ? `📎 Hai allegato <strong>${count}</strong> file su <strong>3</strong>` : '';
 }
 
+// Invia l'iscrizione: valida i campi, carica i 3 file su Supabase Storage,
+// poi salva i dati nel database. Mostra errori specifici se qualcosa manca.
 async function submitForm(catId) {
   const errEl = document.getElementById('form-err');
   const keys = ['modulo','documento','certificato'];
@@ -1228,8 +1431,11 @@ async function submitForm(catId) {
 }
 
 // ══════════════════════════════════════════════
-// ADMIN AUTH
+// AUTENTICAZIONE ADMIN
+// Login e logout dell'amministratore tramite
+// email e password su Supabase Auth.
 // ══════════════════════════════════════════════
+// Effettua il login con email e password, poi carica iscrizioni e contenuti
 async function doLogin() {
   const email = document.getElementById('admin-email')?.value.trim();
   const pwd   = document.getElementById('admin-pwd')?.value;
@@ -1250,6 +1456,7 @@ async function doLogin() {
   }
 }
 
+// Disconnette l'admin e torna alla schermata di login
 async function doLogout() {
   await db.auth.signOut();
   set({ user: null, submissions: [], selected: null, page: 'admin' });
@@ -1257,20 +1464,26 @@ async function doLogout() {
 }
 
 // ══════════════════════════════════════════════
-// ADMIN — SUBMISSIONS
+// GESTIONE ISCRIZIONI (ADMIN)
+// Caricamento, download e eliminazione delle
+// iscrizioni ricevute dalle famiglie.
 // ══════════════════════════════════════════════
+// Scarica tutte le iscrizioni dal database, ordinate dalla più recente
 async function refreshSubs(skipRender) {
   const { data, error } = await db.from('submissions').select('*').order('created_at', { ascending: false });
   if (!error) state.submissions = data || [];
   if (!skipRender) render();
 }
 
+// Interpreta i percorsi dei file: può essere una stringa semplice (vecchio formato)
+// o un oggetto JSON con le chiavi modulo/documento/certificato (nuovo formato)
 function parseFilePaths(val) {
   if (!val) return null;
   try { const p = JSON.parse(val); return (typeof p === 'object' && p !== null) ? p : val; }
   catch { return val; }
 }
 
+// Scarica un singolo allegato di un'iscrizione (formato vecchio con un solo file)
 async function downloadSubSingle(subId) {
   const s = state.submissions.find(x => x.id === subId);
   if (!s?.file_path) return;
@@ -1283,6 +1496,7 @@ async function downloadSubSingle(subId) {
   const a = document.createElement('a'); a.href = data.signedUrl; a.download = name || 'allegato'; a.click();
 }
 
+// Scarica un file specifico dell'iscrizione (modulo, documento o certificato)
 async function downloadSubByKey(subId, key) {
   const s = state.submissions.find(x => x.id === subId);
   if (!s?.file_path) return;
@@ -1296,6 +1510,7 @@ async function downloadSubByKey(subId, key) {
   const a = document.createElement('a'); a.href = data.signedUrl; a.download = name || 'allegato'; a.click();
 }
 
+// Elimina un'iscrizione: chiede conferma, rimuove i file dallo storage e cancella dal database
 async function deleteSub(subId) {
   if (!confirm('Eliminare questa iscrizione? L\'operazione non è reversibile.')) return;
   const s = state.submissions.find(x => x.id === subId);
@@ -1312,8 +1527,12 @@ async function deleteSub(subId) {
 }
 
 // ══════════════════════════════════════════════
-// ADMIN — ASSET MANAGEMENT
+// GESTIONE CONTENUTI (VOLANTINI, MODULI, FOTO)
+// L'admin può caricare volantini, moduli Word
+// e le foto che appaiono nella home page.
 // ══════════════════════════════════════════════
+// Carica dal database l'elenco di tutti i contenuti (volantini, moduli, foto hero)
+// e genera gli URL pubblici per le immagini
 async function loadAssets() {
   const { data } = await db.from('category_assets').select('*');
   if (data) {
@@ -1332,8 +1551,9 @@ async function loadAssets() {
   preloadHeroPhotos();
 }
 
+// Inserisce tag <link rel="preload"> nell'head per ogni foto della home
+// così il browser inizia a scaricarle subito con priorità alta
 function preloadHeroPhotos() {
-  // Remove any previous preload link tags (e.g. after an upload)
   document.querySelectorAll('link[data-hero-preload]').forEach(l => l.remove());
   for (let n = 1; n <= 8; n++) {
     const url = state.assets['__hero'+n]?.flyer_url;
@@ -1348,6 +1568,7 @@ function preloadHeroPhotos() {
   }
 }
 
+// Apre il selettore file per caricare un volantino o un modulo Word
 function triggerAsset(catId, kind) {
   _pendingAssetMeta = { catId, kind };
   const inp = document.getElementById('asset-inp');
@@ -1357,6 +1578,8 @@ function triggerAsset(catId, kind) {
   inp.click();
 }
 
+// Carica il file selezionato su Supabase Storage e aggiorna il database
+// Sostituisce automaticamente il file precedente se già esistente
 async function handleAssetUpload(e) {
   const file = e.target.files[0];
   if (!file || !_pendingAssetMeta) return;
@@ -1389,6 +1612,7 @@ async function handleAssetUpload(e) {
   render();
 }
 
+// Scarica il modulo Word di una categoria tramite un URL firmato temporaneo
 async function downloadTemplate(catId) {
   const a = state.assets[catId];
   if (!a?.template_path) return;
@@ -1401,7 +1625,10 @@ async function downloadTemplate(catId) {
 }
 
 // ══════════════════════════════════════════════
-// INIT
+// AVVIO DELL'APPLICAZIONE
+// Questa funzione parte quando la pagina viene
+// caricata. Controlla se l'utente è già loggato,
+// carica i contenuti e mostra la pagina giusta.
 // ══════════════════════════════════════════════
 async function init() {
   const { data: { session } } = await db.auth.getSession();
@@ -1415,9 +1642,11 @@ async function init() {
   history.replaceState({ page: state.page, catId: state.catId }, '', h || '#');
 }
 
+// Quando l'utente clicca il tasto Indietro/Avanti del browser
 window.addEventListener('popstate', () => applyRoute(true));
 
-// ── NAVBAR HIDE/SHOW ON SCROLL ──
+// ── NASCONDI/MOSTRA LA NAVBAR DURANTE LO SCROLL ──
+// Scorrendo verso il basso la navbar si nasconde, scorrendo verso l'alto riappare
 (function(){
   const nav = document.getElementById('navbar');
   let lastY = window.scrollY;
@@ -1429,6 +1658,7 @@ window.addEventListener('popstate', () => applyRoute(true));
   });
 })();
 
+// Avvia l'applicazione!
 init();
 </script>
 </body>
